@@ -1,0 +1,10 @@
+import(spatstat)
+
+importFrom(stats, approx)
+importFrom(utils, head, tail)
+importFrom(grDevices, xy.coords)
+
+exportPattern("^[[:alpha:]]+")
+
+S3method(cross_f, im)
+S3method(cross_f, funxy)
