@@ -1,3 +1,5 @@
 *.swp
 pcfinhom.Rcheck
 pcfinhom.tar.gz
+*.o
+*.so
