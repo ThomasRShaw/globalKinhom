@@ -1,3 +1,4 @@
+useDynLib(pcfinhom)
 import(spatstat)
 
 importFrom(stats, approx)

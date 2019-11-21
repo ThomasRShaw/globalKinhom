@@ -1,0 +1,148 @@
+###############################################################################
+# K_global from the paper
+# argument list is based on spatstat Kinhom, though many of those arguments
+# are not relevant here. ... are passed to density.ppp or densityfun.ppp
+Kglobal <-
+function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
+                discrete.lambda=FALSE, discrete.h=FALSE, isotropic=FALSE) {
+    # Check inputs
+    verifyclass(X, "ppp")
+    W <- as.owin(X)
+    npts <- npoints(X)
+    AreaW <- area(W)
+
+    # What should the rs be?
+    rfixed <- !missing(r) || !missing(breaks)
+    rmaxdefault <- if (!is.null(rmax)) rmax else rmax.rule("K", W, npts/AreaW)
+    breaks <- handle.r.b.args(r, breaks, W, rmaxdefault=rmaxdefault)
+    r <- breaks$r
+    rmax <- breaks$max
+#     rmax <- .25
+#     if (missing(r)) r <- seq(.001, rmax, by=.001)
+#     else rmax <- max(r)
+
+    if (missing(lambda)) {
+        if (discrete.lambda) {
+            lambda.im <- density(X, ...)
+            lambda <- funxy(function(x,y) interp.im(lambda.im, x,y), W)
+        } else {
+            lambda <- densityfun(X, ...)
+        }
+    } else {
+        Wl <- as.owin(lambda)
+        stopifnot(W$xrange == Wl$xrange && W$yrange == Wl$yrange)
+    }
+
+    pairs <- closepairs(X, rmax)
+    hx <- pairs$xi - pairs$xj
+    hy <- pairs$yi - pairs$yj
+    pairdist <- pairs$d
+
+    if (discrete.h) {
+        dhx <- (r[2] - r[1])/2
+        npt <- ceil(rmax/dhx)
+        xs <- (-npt:npt)*dhx
+        lathx <- outer(xs, xs, function(x,y) x)
+        lathy <- outer(xs, xs, function(x,y) y)
+        latf <- expectedPairs(lambda, lathx, lathy, tol=normtol)
+
+        dim(latf) <- c(2*npt + 1, 2*npt + 1)
+        latf.im <- as.im(latf, xrows=xs, ycols=ys)
+
+        f <- interp.im(latf.im, hx, hy)
+    } else {
+        f <- expectedPairs(lambda, hx, hy, tol=normtol)
+    }
+
+    bins <- .bincode(pairdist, c(0, r), include.lowest=TRUE)
+    K <- numeric(length(r))
+
+    for (i in 1:length(r)) {
+        K[i] <- sum(1/f[bins == i])
+    }
+    K <- cumsum(K)
+    Kf <- data.frame(r=r, theo=pi*r^2, global=K)
+
+    fv(Kf, valu="global")
+}
+
+Kglobalcross <-
+function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
+            normtol=.001, discrete.lambda=FALSE, discrete.h=FALSE,
+            isotropic=FALSE) {
+    # Check inputs
+    verifyclass(X, "ppp")
+    verifyclass(Y, "ppp")
+    W <- as.owin(X)
+    W2 <- as.owin(Y)
+    stopifnot(W$xrange == W2$xrange && W$yrange == W2$yrange)
+
+    npts <- npoints(X)
+    AreaW <- area(W)
+
+
+    # What should the rs be?
+    rfixed <- !missing(r) || !missing(breaks)
+    rmaxdefault <- if (!is.null(rmax)) rmax else rmax.rule("K", W, npts/AreaW)
+    breaks <- handle.r.b.args(r, breaks, W, rmaxdefault=rmaxdefault)
+    r <- breaks$r
+    rmax <- breaks$max
+#    rmax <- .25
+#    if (missing(r)) r <- seq(.001, rmax, by=.001)
+
+    if (missing(lambdaX)) {
+        if (discrete.lambda) {
+            lambdaX.im <- density(X, ...)
+            lambdaX <- funxy(function(x,y) interp.im(lambdaX.im, x,y), W)
+        } else {
+            lambdaX.im <- densityfun(X, ...)
+        }
+    } else {
+        Wl <- as.owin(lambdaX)
+        stopifnot(Wl$xrange == W$xrange && Wl$yrange == W$yrange)
+    }
+    if (missing(lambdaY)) {
+        if (discrete.lambda) {
+            lambdaY.im <- density(Y, ...)
+            lambdaY <- funxy(function(x,y) interp.im(lambdaY.im, x,y), W)
+        } else {
+            lambdaY.im <- densityfun(Y, ...)
+        }
+    } else {
+        Wl <- as.owin(lambdaY)
+        stopifnot(Wl$xrange == W$xrange && Wl$yrange == W$yrange)
+    }
+
+    pairs <- crosspairs(X, Y, rmax)
+    hx <- pairs$xi - pairs$xj
+    hy <- pairs$yi - pairs$yj
+    pairdist <- pairs$d
+
+    if (discrete.h) {
+        dhx <- (r[2] - r[1])/2
+        npt <- ceil(rmax/dhx)
+        xs <- (-npt:npt)*dhx
+        lathx <- outer(xs, xs, function(x,y) x)
+        lathy <- outer(xs, xs, function(x,y) y)
+        latf <- expectedCrossPairs(lambdaX, lambdaY, lathx, lathy, tol=normtol)
+
+        dim(latf) <- c(2*npt + 1, 2*npt + 1)
+        latf.im <- as.im(latf, xrows=xs, ycols=ys)
+
+        f <- interp.im(latf.im, hx, hy)
+    } else {
+        f <- expectedCrossPairs(lambdaX, lambdaY, hx, hy, tol=normtol)
+    }
+
+    bins <- .bincode(pairdist, c(0, r), include.lowest=TRUE)
+    K <- numeric(length(r))
+
+    for (i in 1:length(r)) {
+        K[i] <- sum(1/f[bins == i])
+    }
+    K <- cumsum(K)
+
+    Kf <- data.frame(r=r, theo=pi*r^2, global=K)
+
+    fv(Kf, valu="global")
+}

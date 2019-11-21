@@ -17,15 +17,21 @@ expectedCrossPairs <- function(rho1, rho2=NULL, hx, hy=NULL, method=c("mc", "lat
 
     # Validate arguments
     stopifnot(is.im(rho1) || inherits(rho1, "funxy"))
-    if (is.im(rho1)) rho1 <- funxy(function(x,y) interp.im(rho1, x, y), as.owin(rho1))
+    if (is.im(rho1)) {
+        rho1.im <- rho1
+        rho1 <- funxy(function(x,y) interp.im(rho1.im, x, y), as.owin(rho1.im))
+    }
     cross <- !is.null(rho2)
     if (cross) {
         stopifnot(is.im(rho2) || inherits(rho2, "funxy"))
-        if (is.im(rho2)) rho2 <- funxy(function(x,y) interp.im(rho2, x, y), as.owin(rho2))
+        if (is.im(rho2)) {
+            rho2.im <- rho2
+            rho2 <- funxy(function(x,y) interp.im(rho2.im, x, y), as.owin(rho2.im))
+        }
     } else {
         rho2 <- rho1 # for convenience later
     }
-    method <- match.arg(method, c("mc", "lattice"))
+    method <- match.arg(method)
 
     use.mc <- FALSE
     use.lattice <- FALSE
@@ -128,8 +134,8 @@ expectedCrossPairs <- function(rho1, rho2=NULL, hx, hy=NULL, method=c("mc", "lat
         nloop <- nloop + 1
 
 
-        print(c(nh_active, epr[inds[1]], epr2[inds[1]], min(weights), max(weights), min(sd_est), max(sd_est)),
-                digits=2)
+        print(c(nh_active, min(weights), max(weights),
+                    min(sd_est), max(sd_est)), digits=2)
     }
     # Final output. sampwts is the number of applicable monte carlo samples
     # winwts is the area of W \cap W_{-h}
@@ -162,7 +168,7 @@ cross_f_lattice <- function(rho1, rho2, hx, hy=NULL, dx=.01, ...) {
     #compute points of lattice
     xs <- seq(xrange[1] + dx/2, xrange[2], by=dx);
     ys <- seq(yrange[1] + dy/2, yrange[2], by=dy);
-    
+
     latticex <- as.vector(outer(xs, ys, function(x,y) x))
     latticey <- as.vector(outer(xs, ys, function(x,y) y))
 
@@ -179,7 +185,7 @@ cross_f_lattice <- function(rho1, rho2, hx, hy=NULL, dx=.01, ...) {
 
         allxs <- outer(latticex, hx[hinds], `+`)
         allys <- outer(latticey, hy[hinds], `+`)
-    
+
         allrhos <- interp.im(rho2, as.vector(allxs), as.vector(allys))
 
         dim(allrhos) <- dim(allxs)
@@ -192,4 +198,107 @@ cross_f_lattice <- function(rho1, rho2, hx, hy=NULL, dx=.01, ...) {
     }
 
     return(val)
+}
+
+expectedCrossPairs_iso <- function(rho1, rho2=NULL, r,
+                    tol=.001, maxeval=1e6, maxsamp=5e3) {
+
+    # Validate arguments
+    stopifnot(is.im(rho1) || inherits(rho1, "funxy"))
+    if (is.im(rho1)) {
+        rho1.im <- rho1
+        rho1 <- funxy(function(x,y) interp.im(rho1.im, x,y), as.owin(rho1.im))
+    }
+    cross <- !is.null(rho2)
+    if (cross) {
+        stopifnot(is.im(rho2) || inherits(rho2, "funxy"))
+        if (is.im(rho2)) {
+            rho2.im <- rho2
+            rho2 <- funxy(function(x,y) interp.im(rho2.im, x,y), as.owin(rho2.im))
+        }
+    } else {
+        rho2 <- rho1
+    }
+
+    stopifnot(is.numeric(tol) && tol > 0)
+
+    # Check windows
+    W <- as.owin(rho1)
+    if (cross) {
+        W2 <- as.owin(rho2)
+        stopifnot(W$xrange == W2$xrange && W$yrange== W2$yrange)
+    }
+
+    # allocate results
+    epr <- numeric(length(r))
+    epr2 <- numeric(length(r))
+    sampwts <- numeric(length(r))
+
+    if (is.rectangle(W)) {
+        l <- diff(W$xrange)
+        h <- diff(W$yrange)
+        winwts <- (2*pi - 4*(r/l + r/h) + 2*r^2/(l*h)) * r*l*h
+    } else {
+        #TODO: make them supported
+        stop("non-rectangular windows not yet supported")
+    }
+
+    #looping state
+    allr <- r
+    valid_r <- which(winwts > 0)
+    nloop <- 0
+    inds <- valid_r
+    nr_active <- length(valid_r)
+    if (nr_active == 0) return(epr)
+
+    se_from_sums <- function(s1, s2, n) sqrt( (n*s2/s1^2 - 1) / (n-1))
+
+    # MC loop
+    ndir <- 1
+    while (nr_active > 0) {
+        weights <- sampwts[inds]
+        r <- allr[inds]
+
+        # how many samples this iter?
+        n_U <- max(1, min(floor(maxeval/nr_active), maxsamp))
+
+        U <- runifpoint(n_U, W)
+        rho1U <- rho1(U)
+
+        # sample 10 random directions
+        for (j in 1:ndir) {
+            # get a random direction
+            hx <- rnorm(1)
+            hy <- rnorm(1)
+            rh <- sqrt(hx^2 + hy^2)
+            hx <- hx/rh
+            hy <- hy/rh
+
+            Uphx <- outer(U$x, hx*r, `+`)
+            Uphy <- outer(U$y, hy*r, `+`)
+
+            inside <- inside.owin(Uphx, Uphy, W)
+
+            rhoUp <- matrix(0, nrow=n_U, ncol=nr_active)
+            rhoUp[inside] <- rho2(Uphx[inside], Uphy[inside])
+
+            weights <- weights + colSums(inside)
+
+            epr[inds] <- (epr[inds] + (rho1U %*% rhoUp))
+            epr2[inds] <- (epr2[inds] + (rho1U)^2 %*% (rhoUp)^2)
+        }
+
+        sampwts[inds] <- weights
+        sd_est <- sqrt(ndir)*(sqrt( (weights*epr2[inds] - epr[inds]^2) / (weights - 1)) / epr[inds])
+
+        passed <- sd_est < tol
+        inds <- inds[!is.na(sd_est) & !passed]
+        nr_active <- length(inds)
+        nloop <- nloop + 1
+
+        print(c(nr_active, min(weights), max(weights), min(sd_est), max(sd_est)), digits=2)
+    }
+
+    epr[valid_r] <- epr[valid_r] * winwts[valid_r] / sampwts[valid_r]
+    epr
 }
