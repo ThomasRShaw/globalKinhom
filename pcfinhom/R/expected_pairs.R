@@ -200,6 +200,10 @@ cross_f_lattice <- function(rho1, rho2, hx, hy=NULL, dx=.01, ...) {
     return(val)
 }
 
+expectedPairs_iso <- function(rho, r, tol=.001, maxeval=1e6, maxsamp=5e3) {
+    expectedCrossPairs_iso(rho, NULL, r, tol, maxeval, maxsamp)
+}
+
 expectedCrossPairs_iso <- function(rho1, rho2=NULL, r,
                     tol=.001, maxeval=1e6, maxsamp=5e3) {
 
@@ -234,6 +238,8 @@ expectedCrossPairs_iso <- function(rho1, rho2=NULL, r,
     epr2 <- numeric(length(r))
     sampwts <- numeric(length(r))
 
+    # winwts account for the W \cap W_{-h} weighting of the window.
+    # They are equal to \gamma_r if \rho_1 = \rho_2 = 1 everywhere
     if (is.rectangle(W)) {
         l <- diff(W$xrange)
         h <- diff(W$yrange)
