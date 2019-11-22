@@ -26,7 +26,7 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL,
         stopifnot(W$xrange == W2$xrange && W$yrange == W2$yrange)
     }
 
-    gammas <- expectedCrossPairs_iso(lambda, lambda, r, tol=normtol)
+    gammas <- expectedPairs_iso(lambda, r, tol=normtol)
 
     if (is.null(bw)) {
         bw <- diff(r)
@@ -67,40 +67,82 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL,
 }
 
 #TODO: this only works if bw equals the spacing of the rs!!
-global_cross_pcf_iso <- function(X,Y, rs, bw, ...) {
-    lambda1 <- density(X, ...)
-    lambda2 <- density(Y, ...)
+global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
+    r=NULL, rmax=NULL, kernel=c("box", "epanechnikov"), bw=NULL, stoyan=0.15,
+    normtol=.001, discrete.lambda=FALSE) {
+    verifyclass(X, "ppp")
+    verifyclass(Y, "ppp")
+    W <- as.owin(X)
+    W2 <- as.owin(Y)
+    stopifnot(W$xrange == W2$xrange && W$yrange == W2$yrange)
+    areaW <- area(W)
+    npts <- npoints(X)
 
-    gammas <- cross_gamma(lambda1, lambda2, rs, .01)
-    rhos.unif <- X$n*Y$n
-    gamma.unif <- (2*pi - 8*rs + 2*rs^2) * rs
+
+    rmaxdefault <- if (is.null(rmax)) rmax <- rmax.rule("K", W, npts/areaW)
+    breaks <- handle.r.b.args(r, NULL, W, rmaxdefault=rmax)
+    r <- breaks$r
+    rmax <- breaks$max
+
+    if (is.null(lambdaX)) {
+        if (discrete.lambda) {
+            lambdaX.im <- density(X, eps=.005, ...)
+            lambdaX <- funxy(function(x,y) interp.im(lambdaX.im,x,y), W)
+        } else {
+            lambdaX <- densityfun(X, ...)
+        }
+    } else {
+        Wl <- as.owin(lambdaX)
+        stopifnot(W$xrange == Wl$xrange && W$yrange == Wl$yrange)
+    }
+    if (is.null(lambdaY)) {
+        if (discrete.lambda) {
+            lambdaY.im <- density(Y, eps=.005, ...)
+            lambdaY <- funxy(function(x,y) interp.im(lambdaY.im,x,y), W)
+        } else {
+            lambdaY <- densityfun(Y, ...)
+        }
+    } else {
+        Wl <- as.owin(lambdaY)
+        stopifnot(W$xrange == Wl$xrange && W$yrange == Wl$yrange)
+    }
+
+    gammas <- expectedCrossPairs_iso(lambdaX, lambdaY, r, tol=normtol)
+
 
     if (is.null(bw)) {
-        bw <- diff(rs)
+        bw <- diff(r)
         bw <- c(bw, bw[length(bw)])
+        breaks <- c(0, r + bw/2)
+        breaksl <- 1:length(r)
+        breaksr <- breaksl + 1
+    } else {
+        breaks <- sort(unique(c(r - bw/2, r + bw/2)))
+        breaksl <- numeric(length(r))
+        breaksr <- numeric(length(r))
+        for (i in 1:length(r)) {
+            breaksl[i] <- which(breaks == r[i] - bw/2)
+            breaksr[i] <- which(breaks == r[i] + bw/2)
+        }
     }
 
-    maxr <- rs[length(rs)]  + bw[length(bw)]
-    prs <- crosspairs(X, Y, maxr, what='ijd')
+    prs <- crosspairs(X, Y, rmax, what='ijd')
 
-    d <- bw/2
+    bins <- .bincode(prs$d, breaks, include.lowest=TRUE)
 
-    binedges <- c(rs[1] - d[1], rs + d)
-
-    bins <- .bincode(prs$d, binedges, include.lowest=TRUE)
-    counts <- tabulate(bins)
-
-    xcor <- counts / bw / gammas
-    xcor_u <- counts / bw / gamma.unif /rhos.unif
-
-    wIJ <- 1/(interp.im(lambda1, X[prs$i])* interp.im(lambda2, Y[prs$j]))
-    c_bmw <- numeric(length(r))
+    c <- numeric(length(r))
     for (i in 1:length(r)) {
-        c_bmw[i] <- sum(wIJ[bins == i],na.rm=TRUE)
+        if (length(bw) == 1) thisbw <- bw else thisbw <- bw[i]
+        c[i] <- sum(bins < breaksr[i] & bins >= breaksl[i]) / thisbw / gammas[i]
     }
-    c_bmw <- c_bmw / bw / gamma.unif
 
-    list(c=xcor, c_unif=xcor_u, c_bmw=c_bmw, gamma=gammas, r=rs)
+    df <- data.frame(r=r, theo=rep(1, length(r)), global=c)
 
+    out <- fv(df, argu="r", ylab=quote(c(r)), "global", fmla= . ~ r,
+                alim=c(0,rmax), labl=c("r", "%s[pois](r)", "%s[global](r)"),
+                desc=c("distance argument r", "theoretical poisson %s",
+                "global correction %s"),
+                fname="c")
+
+    out
 }
-
