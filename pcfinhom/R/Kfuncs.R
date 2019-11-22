@@ -38,20 +38,31 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
     hy <- pairs$yi - pairs$yj
     pairdist <- pairs$d
 
-    if (discrete.h) {
-        dhx <- (r[2] - r[1])/2
-        npt <- ceil(rmax/dhx)
-        xs <- (-npt:npt)*dhx
-        lathx <- outer(xs, xs, function(x,y) x)
-        lathy <- outer(xs, xs, function(x,y) y)
-        latf <- expectedPairs(lambda, lathx, lathy, tol=normtol)
-
-        dim(latf) <- c(2*npt + 1, 2*npt + 1)
-        latf.im <- as.im(latf, xrows=xs, ycols=ys)
-
-        f <- interp.im(latf.im, hx, hy)
+    if (isotropic) {
+        r <- sqrt(hx^2 + hy^2)
+        if (discrete.h) {
+            rchecks <- seq(0, max(r), length.out=100)
+            fcheck <- expectedPairs_iso(lambda, rchecks, tol=normtol) / (2 * pi * rchecks)
+            f <- approx(rchecks, fcheck, xout=r)$y
+        } else {
+            f <- expectedPairs_iso(lambda, r, tol=normtol) / (2 * pi * r)
+        }
     } else {
-        f <- expectedPairs(lambda, hx, hy, tol=normtol)
+        if (discrete.h) {
+            dhx <- (r[2] - r[1])/2
+            npt <- ceil(rmax/dhx)
+            xs <- (-npt:npt)*dhx
+            lathx <- outer(xs, xs, function(x,y) x)
+            lathy <- outer(xs, xs, function(x,y) y)
+            latf <- expectedPairs(lambda, lathx, lathy, tol=normtol)
+
+            dim(latf) <- c(2*npt + 1, 2*npt + 1)
+            latf.im <- as.im(latf, xrows=xs, ycols=ys)
+
+            f <- interp.im(latf.im, hx, hy)
+        } else {
+            f <- expectedPairs(lambda, hx, hy, tol=normtol)
+        }
     }
 
     bins <- .bincode(pairdist, c(0, r), include.lowest=TRUE)
@@ -118,20 +129,33 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
     hy <- pairs$yi - pairs$yj
     pairdist <- pairs$d
 
-    if (discrete.h) {
-        dhx <- (r[2] - r[1])/2
-        npt <- ceil(rmax/dhx)
-        xs <- (-npt:npt)*dhx
-        lathx <- outer(xs, xs, function(x,y) x)
-        lathy <- outer(xs, xs, function(x,y) y)
-        latf <- expectedCrossPairs(lambdaX, lambdaY, lathx, lathy, tol=normtol)
-
-        dim(latf) <- c(2*npt + 1, 2*npt + 1)
-        latf.im <- as.im(latf, xrows=xs, ycols=ys)
-
-        f <- interp.im(latf.im, hx, hy)
+    if (isotropic) {
+        r <- sqrt(hx^2 + hy^2)
+        if (discrete.h) {
+            rchecks <- seq(0, max(r), length.out=100)
+            fcheck <- expectedCrossPairs_iso(lambdaX, lambdaY, rchecks,
+                                            tol=normtol) / (2 * pi * rchecks)
+            f <- approx(rchecks, fcheck, xout=r)$y
+        } else {
+            f <- expectedCrossPairs_iso(lambdaX, lambdaY, r, tol=normtol) /
+                                                                (2 * pi * r)
+        }
     } else {
-        f <- expectedCrossPairs(lambdaX, lambdaY, hx, hy, tol=normtol)
+        if (discrete.h) {
+            dhx <- (r[2] - r[1])/2
+            npt <- ceil(rmax/dhx)
+            xs <- (-npt:npt)*dhx
+            lathx <- outer(xs, xs, function(x,y) x)
+            lathy <- outer(xs, xs, function(x,y) y)
+            latf <- expectedCrossPairs(lambdaX, lambdaY, lathx, lathy, tol=normtol)
+
+            dim(latf) <- c(2*npt + 1, 2*npt + 1)
+            latf.im <- as.im(latf, xrows=xs, ycols=ys)
+
+            f <- interp.im(latf.im, hx, hy)
+        } else {
+            f <- expectedCrossPairs(lambdaX, lambdaY, hx, hy, tol=normtol)
+        }
     }
 
     bins <- .bincode(pairdist, c(0, r), include.lowest=TRUE)
