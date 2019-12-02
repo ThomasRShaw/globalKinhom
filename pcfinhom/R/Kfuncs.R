@@ -33,19 +33,19 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
         stopifnot(W$xrange == Wl$xrange && W$yrange == Wl$yrange)
     }
 
-    pairs <- closepairs(X, rmax)
+    pairs <- closepairs(X, rmax, twice=FALSE)
     hx <- pairs$xi - pairs$xj
     hy <- pairs$yi - pairs$yj
     pairdist <- pairs$d
 
     if (isotropic) {
-        r <- sqrt(hx^2 + hy^2)
+        rh <- sqrt(hx^2 + hy^2)
         if (discrete.h) {
-            rchecks <- seq(0, max(r), length.out=100)
+            rchecks <- seq(0, max(rh), length.out=100)
             fcheck <- expectedPairs_iso(lambda, rchecks, tol=normtol) / (2 * pi * rchecks)
-            f <- approx(rchecks, fcheck, xout=r)$y
+            f <- approx(rchecks, fcheck, xout=rh)$y
         } else {
-            f <- expectedPairs_iso(lambda, r, tol=normtol) / (2 * pi * r)
+            f <- expectedPairs_iso(lambda, rh, tol=normtol) / (2 * pi * rh)
         }
     } else {
         if (discrete.h) {
@@ -65,16 +65,19 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
         }
     }
 
-    bins <- .bincode(pairdist, c(0, r), include.lowest=TRUE)
+    bins <- .bincode(pairdist, r, include.lowest=TRUE)
     K <- numeric(length(r))
 
-    for (i in 1:length(r)) {
-        K[i] <- sum(1/f[bins == i])
+    for (i in 2:length(r)) {
+        K[i] <- sum(1/f[bins == i - 1])
     }
-    K <- cumsum(K)
+    K <- cumsum(K)*2 # make up for twice=FALSE above
     Kf <- data.frame(r=r, theo=pi*r^2, global=K)
 
-    fv(Kf, valu="global")
+    fv(Kf, argu="r", ylab=quote(K(r)), valu="global", fmla= . ~ r,
+        alim=c(0,rmax), labl=c("r", "%s[Pois](r)", "%s[global](r)"),
+        desc=c("distance argument r", "theoretical poison %s",
+        "global correction %s"), fname="K")
 }
 
 Kglobalcross <-
@@ -130,15 +133,15 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
     pairdist <- pairs$d
 
     if (isotropic) {
-        r <- sqrt(hx^2 + hy^2)
+        rh <- sqrt(hx^2 + hy^2)
         if (discrete.h) {
-            rchecks <- seq(0, max(r), length.out=100)
+            rchecks <- seq(0, max(rh), length.out=100)
             fcheck <- expectedCrossPairs_iso(lambdaX, lambdaY, rchecks,
                                             tol=normtol) / (2 * pi * rchecks)
-            f <- approx(rchecks, fcheck, xout=r)$y
+            f <- approx(rchecks, fcheck, xout=rh)$y
         } else {
-            f <- expectedCrossPairs_iso(lambdaX, lambdaY, r, tol=normtol) /
-                                                                (2 * pi * r)
+            f <- expectedCrossPairs_iso(lambdaX, lambdaY, rh, tol=normtol) /
+                                                                (2 * pi * rh)
         }
     } else {
         if (discrete.h) {
@@ -158,15 +161,18 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
         }
     }
 
-    bins <- .bincode(pairdist, c(0, r), include.lowest=TRUE)
+    bins <- .bincode(pairdist, r, include.lowest=TRUE)
     K <- numeric(length(r))
 
-    for (i in 1:length(r)) {
-        K[i] <- sum(1/f[bins == i])
+    for (i in 2:length(r)) {
+        K[i] <- sum(1/f[bins == i - 1])
     }
     K <- cumsum(K)
 
     Kf <- data.frame(r=r, theo=pi*r^2, global=K)
 
-    fv(Kf, valu="global")
+    fv(Kf, argu="r", ylab=quote(K(r)), valu="global", fmla= . ~ r,
+        alim=c(0,rmax), labl=c("r", "%s[Pois](r)", "%s[global](r)"),
+        desc=c("distance argument r", "theoretical poison %s",
+        "global correction %s"), fname="K")
 }
