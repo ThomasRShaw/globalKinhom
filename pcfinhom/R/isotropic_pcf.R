@@ -45,7 +45,7 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL,
     }
 
     #maxr <- breaks[length(breaks)]
-    prs <- closepairs(X, rmax, what='ijd')
+    prs <- closepairs(X, rmax + bw[length(bw)]/2, what='ijd')
 
     #TODO: for consistency, this could be done with density.default, kernel, bw
     bins <- .bincode(prs$d, breaks, include.lowest=TRUE)
@@ -126,7 +126,7 @@ global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
         }
     }
 
-    prs <- crosspairs(X, Y, rmax, what='ijd')
+    prs <- crosspairs(X, Y, rmax + bw[length(bw)]/2, what='ijd')
 
     bins <- .bincode(prs$d, breaks, include.lowest=TRUE)
 
