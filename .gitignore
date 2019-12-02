@@ -3,3 +3,4 @@ pcfinhom.Rcheck
 pcfinhom.tar.gz
 *.o
 *.so
+symbols.rds
