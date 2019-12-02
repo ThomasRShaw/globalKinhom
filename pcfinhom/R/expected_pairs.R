@@ -134,8 +134,8 @@ expectedCrossPairs <- function(rho1, rho2=NULL, hx, hy=NULL, method=c("mc", "lat
         nloop <- nloop + 1
 
 
-        print(c(nh_active, min(weights), max(weights),
-                    min(sd_est), max(sd_est)), digits=2)
+        #print(c(nh_active, min(weights), max(weights),
+        #            min(sd_est), max(sd_est)), digits=2)
     }
     # Final output. sampwts is the number of applicable monte carlo samples
     # winwts is the area of W \cap W_{-h}
@@ -302,7 +302,7 @@ expectedCrossPairs_iso <- function(rho1, rho2=NULL, r,
         nr_active <- length(inds)
         nloop <- nloop + 1
 
-        print(c(nr_active, min(weights), max(weights), min(sd_est), max(sd_est)), digits=2)
+        #print(c(nr_active, min(weights), max(weights), min(sd_est), max(sd_est)), digits=2)
     }
 
     epr[valid_r] <- epr[valid_r] * winwts[valid_r] / sampwts[valid_r]
