@@ -59,6 +59,5 @@ Thomas Shaw <shawtr@umich.edu>
 \examples{
 rho <- funxy(function(x,y) 100*(1+x), owin())
 X <- rpoispp(rho)
-r <- seq(0.001, .2, by=.001)
-K <- Kglobal(X, r=r, normtol=.006)
+K <- Kglobal(X, normtol=.006)
 }
