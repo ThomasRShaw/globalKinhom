@@ -4,7 +4,7 @@
 # are not relevant here. ... are passed to density.ppp or densityfun.ppp
 Kglobal <-
 function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
-                discrete.lambda=FALSE, discrete.h=FALSE, isotropic=FALSE) {
+                discrete.lambda=FALSE, discrete.h=FALSE, isotropic=FALSE, analytical=FALSE) {
     # Check inputs
     verifyclass(X, "ppp")
     W <- as.owin(X)
@@ -61,7 +61,8 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
 
             f <- interp.im(latf.im, hx, hy)
         } else {
-            f <- expectedPairs(lambda, hx, hy, tol=normtol)
+            if (analytical) f <- auto_ep_analytical(X, hx, hy, ...)
+            else f <- expectedPairs(lambda, hx, hy, tol=normtol)
         }
     }
 
@@ -83,7 +84,7 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
 Kglobalcross <-
 function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
             normtol=.001, discrete.lambda=FALSE, discrete.h=FALSE,
-            isotropic=FALSE) {
+            isotropic=FALSE, analytical=FALSE) {
     # Check inputs
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -109,7 +110,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
             lambdaX.im <- density(X, ...)
             lambdaX <- funxy(function(x,y) interp.im(lambdaX.im, x,y), W)
         } else {
-            lambdaX.im <- densityfun(X, ...)
+            lambdaX <- densityfun(X, ...)
         }
     } else {
         Wl <- as.owin(lambdaX)
@@ -120,7 +121,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
             lambdaY.im <- density(Y, ...)
             lambdaY <- funxy(function(x,y) interp.im(lambdaY.im, x,y), W)
         } else {
-            lambdaY.im <- densityfun(Y, ...)
+            lambdaY <- densityfun(Y, ...)
         }
     } else {
         Wl <- as.owin(lambdaY)
@@ -157,7 +158,11 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
 
             f <- interp.im(latf.im, hx, hy)
         } else {
-            f <- expectedCrossPairs(lambdaX, lambdaY, hx, hy, tol=normtol)
+            if (analytical) {
+                f <- cross_ep_analytical(X,Y,hx, hy, b=bw.CvL(X))
+            } else {
+                f <- expectedCrossPairs(lambdaX, lambdaY, hx, hy, tol=normtol)
+            }
         }
     }
 

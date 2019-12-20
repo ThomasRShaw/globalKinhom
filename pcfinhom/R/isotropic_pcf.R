@@ -3,7 +3,7 @@
 global_pcf_iso <-
 function(X, lambda=NULL, ..., r=NULL, rmax=NULL,
             kernel=c("box", "epanechnikov"), bw=NULL, stoyan=0.15, normtol=.001,
-            discrete.lambda=FALSE) {
+            discrete.lambda=FALSE, divisor=c("r", "d")) {
     verifyclass(X, "ppp")
     W <- as.owin(X)
     areaW <- area(W)
