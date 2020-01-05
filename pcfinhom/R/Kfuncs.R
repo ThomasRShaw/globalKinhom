@@ -2,9 +2,10 @@
 # K_global from the paper
 # argument list is based on spatstat Kinhom, though many of those arguments
 # are not relevant here. ... are passed to density.ppp or densityfun.ppp
+# if no lambda, use an analytical kernel version of expectedCrossPairs
 Kglobal <-
-function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
-                discrete.lambda=FALSE, discrete.h=FALSE, isotropic=FALSE, analytical=FALSE) {
+function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
+            normtol=.001, discrete.h=FALSE, isotropic=FALSE) {
     # Check inputs
     verifyclass(X, "ppp")
     W <- as.owin(X)
@@ -22,13 +23,10 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
 #     else rmax <- max(r)
 
     if (missing(lambda)) {
-        if (discrete.lambda) {
-            lambda.im <- density(X, ...)
-            lambda <- funxy(function(x,y) interp.im(lambda.im, x,y), W)
-        } else {
-            lambda <- densityfun(X, ...)
-        }
+        analytical <- TRUE
     } else {
+        analytical <- FALSE
+
         Wl <- as.owin(lambda)
         stopifnot(W$xrange == Wl$xrange && W$yrange == Wl$yrange)
     }
@@ -54,14 +52,15 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
             xs <- (-npt:npt)*dhx
             lathx <- outer(xs, xs, function(x,y) x)
             lathy <- outer(xs, xs, function(x,y) y)
-            latf <- expectedPairs(lambda, lathx, lathy, tol=normtol)
+            if (analytical) latf <- expectedPairs_kernel(X, lathx, lathy, sigma)
+            else latf <- expectedPairs(lambda, lathx, lathy, tol=normtol)
 
             dim(latf) <- c(2*npt + 1, 2*npt + 1)
             latf.im <- as.im(latf, xrows=xs, ycols=ys)
 
             f <- interp.im(latf.im, hx, hy)
         } else {
-            if (analytical) f <- auto_ep_analytical(X, hx, hy, ...)
+            if (analytical) f <- expectedPairs_kernel(X, hx, hy, sigma)
             else f <- expectedPairs(lambda, hx, hy, tol=normtol)
         }
     }
@@ -81,10 +80,12 @@ function(X, lambda=NULL, ..., r=NULL, rmax=NULL, breaks=NULL, normtol=.001,
         "global correction %s"), fname="K")
 }
 
+# If lambdaX and lambdaY are both NULL, use the analytical kernel
+# otherwise, use Monte Carlo estimates for f
 Kglobalcross <-
-function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
-            normtol=.001, discrete.lambda=FALSE, discrete.h=FALSE,
-            isotropic=FALSE, analytical=FALSE) {
+function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
+            rmax=NULL, breaks=NULL, normtol=.001, discrete.lambda=FALSE,
+            discrete.h=FALSE, isotropic=FALSE) {
     # Check inputs
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -95,37 +96,23 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
     npts <- npoints(X)
     AreaW <- area(W)
 
-
     # What should the rs be?
     rfixed <- !missing(r) || !missing(breaks)
     rmaxdefault <- if (!is.null(rmax)) rmax else rmax.rule("K", W, npts/AreaW)
     breaks <- handle.r.b.args(r, breaks, W, rmaxdefault=rmaxdefault)
     r <- breaks$r
     rmax <- breaks$max
-#    rmax <- .25
-#    if (missing(r)) r <- seq(.001, rmax, by=.001)
 
-    if (missing(lambdaX)) {
-        if (discrete.lambda) {
-            lambdaX.im <- density(X, ...)
-            lambdaX <- funxy(function(x,y) interp.im(lambdaX.im, x,y), W)
-        } else {
-            lambdaX <- densityfun(X, ...)
-        }
+    # How to compute f?
+    # if both lambdaX and lambdaY are missing, use an analytical kernel-based
+    # estimator
+    if (is.null(lambdaX) && is.null(lambdaY)) {
+        analytical <- TRUE
     } else {
-        Wl <- as.owin(lambdaX)
-        stopifnot(Wl$xrange == W$xrange && Wl$yrange == W$yrange)
-    }
-    if (missing(lambdaY)) {
-        if (discrete.lambda) {
-            lambdaY.im <- density(Y, ...)
-            lambdaY <- funxy(function(x,y) interp.im(lambdaY.im, x,y), W)
-        } else {
-            lambdaY <- densityfun(Y, ...)
-        }
-    } else {
-        Wl <- as.owin(lambdaY)
-        stopifnot(Wl$xrange == W$xrange && Wl$yrange == W$yrange)
+        analytical <- FALSE
+
+        lambdaX <- fixLambda(lambdaX, X, discrete.lambda, sigma, ...)
+        lambdaY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, ...)
     }
 
     pairs <- crosspairs(X, Y, rmax)
@@ -159,7 +146,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
             f <- interp.im(latf.im, hx, hy)
         } else {
             if (analytical) {
-                f <- cross_ep_analytical(X,Y,hx, hy, b=bw.CvL(X))
+                f <- expectedCrossPairs_kernel(X,Y,hx, hy, sigma)
             } else {
                 f <- expectedCrossPairs(lambdaX, lambdaY, hx, hy, tol=normtol)
             }
@@ -180,4 +167,22 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, rmax=NULL, breaks=NULL,
         alim=c(0,rmax), labl=c("r", "%s[Pois](r)", "%s[global](r)"),
         desc=c("distance argument r", "theoretical poison %s",
         "global correction %s"), fname="K")
+}
+
+
+fixLambda <- function(lambdaX, X, discrete.lambda, sigma, ...) {
+    W <- as.owin(X)
+    if (is.null(lambdaX)) {
+        if (discrete.lambda) {
+            lambdaX.im <- density(X, sigma, ...)
+            lambdaX <- funxy(function(x,y) interp.im(lambdaX.im, x,y), W)
+        } else {
+            lambdaX <- densityfun(X, sigma, ...)
+        }
+    } else {
+        Wl <- as.owin(lambdaX)
+        stopifnot(Wl$xrange == W$xrange && Wl$yrange == W$yrange)
+    }
+
+    lambdaX
 }
