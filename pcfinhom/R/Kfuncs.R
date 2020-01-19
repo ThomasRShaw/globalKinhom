@@ -5,7 +5,7 @@
 # if no lambda, use an analytical kernel version of expectedCrossPairs
 Kglobal <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
-            normtol=.001, discrete.h=FALSE, isotropic=FALSE) {
+            normtol=.001, discrete.h=FALSE, isotropic=FALSE, leaveoneout=FALSE) {
     # Check inputs
     verifyclass(X, "ppp")
     W <- as.owin(X)
@@ -60,8 +60,10 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
 
             f <- interp.im(latf.im, hx, hy)
         } else {
-            if (analytical) f <- expectedPairs_kernel(X, hx, hy, sigma)
-            else f <- expectedPairs(lambda, hx, hy, tol=normtol)
+            if (analytical) {
+                f <- if (leaveoneout) expectedPairs_kernel(X, hx, hy, sigma)
+                    else expectedCrossPairs_kernel(X,X,hx, hy, sigma)
+            } else f <- expectedPairs(lambda, hx, hy, tol=normtol)
         }
     }
 
