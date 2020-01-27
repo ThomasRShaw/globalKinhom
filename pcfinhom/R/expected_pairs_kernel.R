@@ -21,6 +21,10 @@ expectedCrossPairs_kernel <- function(X, Y=NULL, hx, hy, sigma = bw.CvL(X)) {
     wY <- if (autof) wX else diggle_weights(Y, sigma)
     if (autof) Y <- X
 
+    ep_kernel_engine(X,Y,hx,hy,wX,wY,sigma,autof)
+}
+
+ep_kernel_engine <- function(X,Y,hx,hy,wX,wY,sigma,autof) {
     res <- numeric(length(hx))
 
     cfac <- 1/(4*pi*sigma^2)
@@ -58,3 +62,60 @@ expectedCrossPairs_kernel <- function(X, Y=NULL, hx, hy, sigma = bw.CvL(X)) {
     cfac * res
 }
 
+expectedCrossPairs_iso_kernel <- function(X, Y=NULL, r, sigma = bw.CvL(X), tol=.001) {
+    autof <- is.null(Y)
+
+    if (is.function(sigma)) sigma <- sigma(X)
+    stopifnot(is.numeric(sigma))
+
+    wX <- diggle_weights(X,sigma)
+    wY <- if (autof) wX else diggle_weights(Y, sigma)
+
+    if (autof) Y <- X
+
+    res <- numeric(length(r))
+    res2 <- numeric(length(r))
+    resn <- numeric(length(r))
+
+    nr <- 2*ceiling(2*pi*r/sigma) + 1 # sample, nr equally spaced angles with spacing < sigma
+
+    nr[is.inf(nr)] <- 1
+
+    dthetas <- vector('list', length(r))
+    for (i in 1:length(r)) dthetas[[i]] <- 2*pi*(0:(nr[i]-1))/nr[i]
+
+    last <- cumsum(nr)
+    first <- last - nr + 1
+
+    th0 <- runif(1,0,2*pi)
+    th1 <- th0 + pi
+
+    hx0 <- do.call(c, Map(function(dth, ri) ri*cos(th0 + dth), dthetas, r))
+    hy0 <- do.call(c, Map(function(dth, ri) ri*sin(th0 + dth), dthetas, r))
+
+    hx1 <- do.call(c, Map(function(dth, ri) ri*cos(th1 + dth), dthetas, r))
+    hy1 <- do.call(c, Map(function(dth, ri) ri*sin(th1 + dth), dthetas, r))
+
+    tmp0 <- ep_kernel_engine(X,Y,hx0,hy0,wX,wY,sigma,autof)
+    tmp1 <- ep_kernel_engine(X,Y,hx1,hy1,wX,wY,sigma,autof)
+
+    res0 <- numeric(length(r))
+    res1 <- numeric(length(r))
+    for (i in 1:length(r)) {
+        res0[i] <- sum(tmp0[first[i]:last[i]])/nr[i]
+        res1[i] <- sum(tmp1[first[i]:last[i]])/nr[i]
+    }
+
+    res <- res + (res0 + res1)/2
+
+    nbad <- sum(abs(res0 - res1)/res > tol*sqrt(2))
+
+    if (nbad > 0) {
+        warning("nbad ", nbad, ".")
+    }
+
+    resn <- resn + 1
+
+    2*pi*r*res / resn
+
+}
