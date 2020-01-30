@@ -81,8 +81,12 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
                         "Global intensity reweighted estimate of %s", "global")
     }
 
-    lambdas <- density.ppp(X, at="points", ..., sigma=sigma, leaveoneout=leaveoneout)
-    #lambdas_noloo <- density.ppp(X, at="points", ..., sigma=sigma, leaveoneout=FALSE)
+    if (is.null(lambda)) {
+        lambdas <- density.ppp(X, at="points", ..., sigma=sigma, leaveoneout=leaveoneout)
+        #lambdas_noloo <- density.ppp(X, at="points", ..., sigma=sigma, leaveoneout=FALSE)
+    } else {
+        lambdas <- lambda(X)
+    }
     lambda2 <- lambdas[prs$i]*lambdas[prs$j]
 
     edgewt <- edge.Trans(W=W, dx=X$x[prs$i] - X$x[prs$j], dy=X$y[prs$i]-X$y[prs$j],
