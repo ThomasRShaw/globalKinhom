@@ -56,9 +56,11 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     }
 
     if (interpolate) {
-        spl <- smooth.spline(r_test, gammas/r_test, df=length(r_test))
-        gammas <- predict(spl, r)$y * r
+        spl <- smooth.spline(r_test, gammas, df=length(r_test))
+        gammas <- predict(spl, r)$y
     }
+
+    gammas <- gammas * 2 * pi * r
 
     prs <- closepairs(X, rmax + 2*bw, what='ijd')
 
@@ -83,7 +85,6 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
 
     if (is.null(lambda)) {
         lambdas <- density.ppp(X, at="points", ..., sigma=sigma, leaveoneout=leaveoneout)
-        #lambdas_noloo <- density.ppp(X, at="points", ..., sigma=sigma, leaveoneout=FALSE)
     } else {
         lambdas <- lambda(X)
     }
@@ -112,12 +113,11 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     out
 }
 
-#TODO: this only works if bw equals the spacing of the rs!!
 global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     sigma=bw.CvL(X), r=NULL, rmax=NULL, kernel="epanechnikov", bw=NULL,
     stoyan=0.15, normtol=.001, ratio=FALSE, discrete.lambda=FALSE,
     divisor=c("r", "d"), analytical=NULL, interpolate=TRUE,
-    interpolate.fac=10) {
+    interpolate.fac=10, leaveoneout=TRUE) {
 
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -173,11 +173,13 @@ global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     }
 
     if (interpolate) {
-        spl <- smooth.spline(r_test, gammas/r_test, df=length(r_test))
-        gammas <- predict(spl, r)$y * r
+        spl <- smooth.spline(r_test, gammas, df=length(r_test))
+        gammas <- predict(spl, r)$y
     }
 
-    prs <- crosspairs(X, rmax + 2*bw, what='all')
+    gammas <- gammas * 2 * pi * r
+
+    prs <- crosspairs(X, Y, rmax + 2*bw, what='all')
 
     df <- data.frame(r=r, theo=rep(1, length(r)))
     out <- ratfv(df, NULL, gammas, "r", quote(c(r)), "theo", NULL, alim,
@@ -191,10 +193,10 @@ global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     cG <- kdenG$g*2*pi*r/gammas
     bw.used <- attr(kdenG, "bw")
     if (!ratio) {
-        out <- bind.fv(out, data.frame(global=gG), "hat(%s)[global](r)",
+        out <- bind.fv(out, data.frame(global=cG), "hat(%s)[global](r)",
                 "Global intensity reweighted estimate of %s", "global")
     } else {
-        out <- bind.ratfv(out, data.frame(global=gG*gammas), gammas,
+        out <- bind.ratfv(out, data.frame(global=cG*gammas), gammas,
                 "hat(%s)[global](r)", "Global intensity reweighted estimate of %s",
                 "global")
     }
@@ -216,10 +218,10 @@ global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     kdenL <- sewpcf(prs$d, edgewt/lambda2, denargs, areaW, divisor=divisor)
     cL <- kdenL$g
     if (!ratio) {
-        out <- bind.fv(out, data.frame(local=gL), "hat(%s)[local](r)",
+        out <- bind.fv(out, data.frame(local=cL), "hat(%s)[local](r)",
                 "Local intensity reweighted estimate of %s", "local")
     } else {
-        out <- bind.ratfv(out, data.frame(local=gL*lambda2/edgewt), lambda2/edgewt,
+        out <- bind.ratfv(out, data.frame(local=cL*lambda2/edgewt), lambda2/edgewt,
                 "hat(%s)[local](r)",
                 "Local intensity reweighted estimate of %s", "local")
     }
@@ -230,7 +232,7 @@ global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     if (ratio)
         out <- conform.ratfv(out)
 
-    attr(out, "bw"), bw.used
+    attr(out, "bw") <- bw.used
 
     out
 }
