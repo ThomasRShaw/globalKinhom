@@ -79,7 +79,7 @@ expectedCrossPairs_iso_kernel <- function(X, Y=NULL, r, sigma = bw.CvL(X), tol=.
 
     nr <- 2*ceiling(2*pi*r/sigma) + 1 # sample, nr equally spaced angles with spacing < sigma
 
-    nr[is.inf(nr)] <- 1
+    nr[is.infinite(nr)] <- 1
 
     dthetas <- vector('list', length(r))
     for (i in 1:length(r)) dthetas[[i]] <- 2*pi*(0:(nr[i]-1))/nr[i]
@@ -116,6 +116,6 @@ expectedCrossPairs_iso_kernel <- function(X, Y=NULL, r, sigma = bw.CvL(X), tol=.
 
     resn <- resn + 1
 
-    2*pi*r*res / resn
+    res / resn # note, no 2pi r here, to avoid problems at 0
 
 }
