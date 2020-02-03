@@ -104,7 +104,8 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
 Kinhomcross <-
 function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
             rmax=NULL, breaks=NULL, normtol=.001, analytical=NULL,
-            discrete.lambda=FALSE, interpolate=FALSE, isotropic=FALSE) {
+            discrete.lambda=FALSE, interpolate=FALSE, isotropic=FALSE,
+            interpolate.fac=10, leaveoneout=TRUE) {
     # Check inputs
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -154,11 +155,11 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
         }
 
         fcheck <- if (analytical) {
-                expectedCrossPairs_kernel_iso(X,Y,rcheck, sigma=sigma)
+                expectedCrossPairs_iso_kernel(X,Y,rcheck, sigma=sigma)
             } else expectedCrossPairs_iso(lambdaX, lambdaY, rcheck, tol=normtol)
-        f <- fcheck / (2 * pi * rcheck)
+        f <- fcheck
         if (interpolate) {
-            f <- approx(rchecks, f, xout=rh)$y
+            f <- approx(rcheck, f, xout=rh)$y
         }
     } else { # !isotropic
         if (interpolate) {
@@ -188,10 +189,11 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
     lambdaXs <- density.ppp(X, ..., sigma, at="points", leaveoneout=leaveoneout)
     lambdaYs <- density.ppp(Y, ..., sigma, at="points", leaveoneout=leaveoneout)
-    lambda2s <- lambdas[pairs$i]*lambdaYs[pairs$j]
+    lambda2s <- lambdaXs[pairs$i]*lambdaYs[pairs$j]
 
     bins <- .bincode(pairdist, r, include.lowest=TRUE)
     K <- numeric(length(r))
+    Kl <- numeric(length(r))
 
     for (i in 2:length(r)) {
         K[i] <- sum(1/f[bins == i - 1])
@@ -199,13 +201,19 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     }
 
     K <- cumsum(K)
+    Kl <- cumsum(Kl)
 
     Kf <- data.frame(r=r, theo=pi*r^2, global=K, local=Kl)
 
-    fv(Kf, argu="r", ylab=quote(K(r)), valu="global", fmla= . ~ r,
+    out <- fv(Kf, argu="r", ylab=quote(K(r)), valu="global", fmla= . ~ r,
         alim=c(0,rmax), labl=c("r", "%s[Pois](r)", "%s[global](r)", "%s[local](r)"),
         desc=c("distance argument r", "theoretical poison %s",
         "global correction %s", "local correction %s"), fname="K")
+
+    attr(out, "fs") <- f
+    attr(out, "prs") <- pairs
+    attr(out, "rh") <- rh
+    out
 }
 
 
