@@ -212,7 +212,6 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
     attr(out, "fs") <- f
     attr(out, "prs") <- pairs
-    attr(out, "rh") <- rh
     out
 }
 
