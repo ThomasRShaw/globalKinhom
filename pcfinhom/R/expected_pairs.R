@@ -243,7 +243,7 @@ expectedCrossPairs_iso <- function(rho1, rho2=NULL, r,
     if (is.rectangle(W)) {
         l <- diff(W$xrange)
         h <- diff(W$yrange)
-        winwts <- (2*pi - 4*(r/l + r/h) + 2*r^2/(l*h)) * r*l*h
+        winwts <- (2*pi - 4*(r/l + r/h) + 2*r^2/(l*h)) * l*h/(2*pi)
     } else {
         #TODO: make them supported
         stop("non-rectangular windows not yet supported")
