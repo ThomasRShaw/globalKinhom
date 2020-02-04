@@ -1,6 +1,6 @@
 # isotropic estimate for pcf. bw is the bandwidth for pcf estimation, _NOT_ for
 # intensity estimation. ... are passed to densityfun.ppp()
-global_pcf_iso <-
+pcfinhom <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
             kernel="epanechnikov",
             bw=NULL, stoyan=0.15, normtol=.001, ratio=FALSE,
@@ -34,7 +34,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     denargs <- list(kernel=kernel, bw=bw, n=length(r), from=0, to=rmax)
 
     if (is.null(analytical)) {
-        analytical <- is.null(lambda) # do the analytical method if no lambda is provided
+        analytical <- is.null(lambda) && is.null(exp_prs) # do the analytical method if no lambda is provided
     }
 
     if (interpolate) {
@@ -50,9 +50,15 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     if (analytical) {
         Y <- if (leaveoneout) NULL else X
         gammas <- expectedCrossPairs_iso_kernel(X, Y, r_test, sigma=sigma)
-    } else {
+    } else if (is.null(exp_prs)) {
         lambda <- fixLambda(lambda, X, discrete.lambda, sigma, ...)
         gammas <- expectedPairs_iso(lambda, r_test, tol=normtol)
+    } else {
+        if (is.function(exp_prs)) {
+            gammas <- exp_prs(r_test)
+        } else {
+            stop("exp_prs is unknown format")
+        }
     }
 
     if (interpolate) {
@@ -113,11 +119,11 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     out
 }
 
-global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
+pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     sigma=bw.CvL(X), r=NULL, rmax=NULL, kernel="epanechnikov", bw=NULL,
     stoyan=0.15, normtol=.001, ratio=FALSE, discrete.lambda=FALSE,
     divisor=c("r", "d"), analytical=NULL, interpolate=TRUE,
-    interpolate.fac=10, leaveoneout=TRUE) {
+    interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL) {
 
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -136,6 +142,7 @@ global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
 
     kernel <- match.kernel(kernel)
 
+    # Bandwidth for the pcf estimate
     if (is.null(bw) && (kernel == "epanechnikov")) {
         h <- stoyan/sqrt(npts/areaW)
         hmax <- h
@@ -150,7 +157,7 @@ global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     denargs <- list(kernel=kernel, bw=bw, n=length(r), from=0, to=rmax)
 
     if (is.null(analytical)) {
-        analytical <- is.null(lambdaX) && is.null(lambdaY)
+        analytical <- is.null(lambdaX) && is.null(lambdaY) && is.null(exp_prs)
     }
 
     if (interpolate) {
@@ -165,11 +172,17 @@ global_cross_pcf_iso <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
 
     if (analytical) {
         gammas <- expectedCrossPairs_iso_kernel(X,Y, r_test, sigma=sigma)
-    } else {
+    } else if (is.null(exp_prs)){
         lambdaX <- fixLambda(lambdaX, X, discrete.lambda, sigma, ...)
         lambdaY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, ...)
 
         gammas <- expectedCrossPairs_iso(lambdaX, lambdaY, r_test, tol=normtol)
+    } else {
+        if (is.function(exp_prs)) {
+            gammas <- exp_prs(r_test)
+        } else {
+            stop("exp_prs given in unknown form")
+        }
     }
 
     if (interpolate) {
