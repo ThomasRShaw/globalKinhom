@@ -7,7 +7,7 @@ Kglobal <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
             analytical=NULL, normtol=.001, discrete.lambda=FALSE,
             interpolate=FALSE, interpolate.fac=10, isotropic=FALSE,
-            leaveoneout=FALSE) {
+            leaveoneout=FALSE, exp_prs=NULL) {
     # Check inputs
     verifyclass(X, "ppp")
     W <- as.owin(X)
@@ -23,11 +23,11 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
 
     # do the analytical method if no lambda is provided
     if (is.null(analytical)) {
-        analytical <- is.null(lambda)
+        analytical <- is.null(lambda) && is.null(exp_prs)
     }
 
     # Set up lambda if applicable
-    if (!analytical) {
+    if (!analytical && is.null(exp_prs)) {
         if (!is.null(sig_tmp <- attr(lambda, "sigma"))) {
             sigma <- sig_tmp
         }
@@ -49,11 +49,20 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
             rcheck <- rh
         }
 
-        fcheck <- if (analytical) {
-                Y <- if (leaveoneout) NULL else X
-                expectedCrossPairs_kernel_iso(X,Y,rcheck, sigma=sigma)
-            } else expectedPairs_iso(lambda, rcheck, tol=normtol)
-        f <- fcheck / (2 * pi * rcheck)
+        if (analytical) {
+            Y <- if (leaveoneout) NULL else X
+            fcheck <- expectedCrossPairs_kernel_iso(X,Y,rcheck, sigma=sigma)
+        } else if (is.null(exp_prs)) {
+            fcheck <- expectedPairs_iso(lambda, rcheck, tol=normtol)
+        } else {
+            if (is.function(exp_prs)) {
+                fcheck <- exp_prs(rcheck)
+            } else {
+                stop("exp_pairs is unknown format")
+            }
+        }
+
+        f <- fcheck
         if (interpolate) {
             f <- approx(rchecks, f, xout=rh)$y
         }
@@ -72,8 +81,12 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
         if (analytical) {
             Y <- if (leaveoneout) NULL else X
             f <- expectedCrossPairs_kernel(X, Y, lathx, lathy, sigma)
-        } else {
+        } else if (is.null(exp_prs)) {
             f <- expectedPairs(lambda, lathx, lathy, tol=normtol)
+        } else {
+            if (is.function(exp_prs)) {
+                f <- exp_prs(lathx, lathy)
+            }
         }
 
         if (interpolate) {
@@ -105,7 +118,7 @@ Kinhomcross <-
 function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
             rmax=NULL, breaks=NULL, normtol=.001, analytical=NULL,
             discrete.lambda=FALSE, interpolate=FALSE, isotropic=FALSE,
-            interpolate.fac=10, leaveoneout=TRUE) {
+            interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL) {
     # Check inputs
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -127,10 +140,10 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     # if both lambdaX and lambdaY are missing, use an analytical kernel-based
     # estimator
     if (is.null(analytical)) {
-        analytical <- is.null(lambdaX) && is.null(lambdaY)
+        analytical <- is.null(lambdaX) && is.null(lambdaY) && is.null(exp_prs)
     }
 
-    if (!analytical) {
+    if (!analytical && is.null(exp_prs)) {
         if (!is.null(sig_tmp <- attr(lambdaX, "sigma"))) {
             sigma <- sig_tmp
         }
@@ -154,9 +167,18 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
             rcheck <- rh
         }
 
-        fcheck <- if (analytical) {
-                expectedCrossPairs_iso_kernel(X,Y,rcheck, sigma=sigma)
-            } else expectedCrossPairs_iso(lambdaX, lambdaY, rcheck, tol=normtol)
+        if (analytical) {
+                fcheck <- expectedCrossPairs_iso_kernel(X,Y,rcheck, sigma=sigma)
+        } else if(is.null(exp_prs) {
+                fcheck <- expectedCrossPairs_iso(lambdaX, lambdaY, rcheck, tol=normtol)
+        } else {
+            if (is.function(exp_prs)) {
+                fcheck <- exp_prs(rcheck)
+            } else {
+                stop("exp_prs is unknown format")
+            }
+        }
+
         f <- fcheck
         if (interpolate) {
             f <- approx(rcheck, f, xout=rh)$y
@@ -175,8 +197,14 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
         if (analytical) {
             f <- expectedCrossPairs_kernel(X, Y, lathx, lathy, sigma)
-        } else {
+        } else if (is.null(exp_prs)) {
             f <- expectedCrossPairs(lambdaX, lambdaY, lathx, lathy, tol=normtol)
+        } else {
+            if (is.function(exp_prs)) {
+                f <- exp_prs(lathx, lathy)
+            } else {
+                stop("exp_prs is unknown format")
+            }
         }
 
         if (interpolate) {
