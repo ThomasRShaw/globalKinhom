@@ -169,7 +169,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
         if (analytical) {
                 fcheck <- expectedCrossPairs_iso_kernel(X,Y,rcheck, sigma=sigma)
-        } else if(is.null(exp_prs) {
+        } else if(is.null(exp_prs)) {
                 fcheck <- expectedCrossPairs_iso(lambdaX, lambdaY, rcheck, tol=normtol)
         } else {
             if (is.function(exp_prs)) {
@@ -215,9 +215,15 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
         }
     }
 
-    lambdaXs <- density.ppp(X, ..., sigma, at="points", leaveoneout=leaveoneout)
-    lambdaYs <- density.ppp(Y, ..., sigma, at="points", leaveoneout=leaveoneout)
+    if (analytical || is.null(lambdaX))
+        lambdaXs <- density.ppp(X, ..., sigma, at="points", leaveoneout=leaveoneout)
+        else lambdaXs <- lambdaX(X$x, X$y)
+    if (analytical || is.null(lambdaX))
+        lambdaYs <- density.ppp(Y, ..., sigma, at="points", leaveoneout=leaveoneout)
+        else lambdaYs <- lambdaY(Y$x, Y$y)
     lambda2s <- lambdaXs[pairs$i]*lambdaYs[pairs$j]
+    edgewt <- edge.Trans(dx=hx, dy=hy, W=W, paired=TRUE)
+    wIJ <- edgewt/lambda2s
 
     bins <- .bincode(pairdist, r, include.lowest=TRUE)
     K <- numeric(length(r))
@@ -225,7 +231,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
     for (i in 2:length(r)) {
         K[i] <- sum(1/f[bins == i - 1])
-        Kl[i] <- sum(1/lambda2s[bins== i-1])
+        Kl[i] <- sum(wIJ[bins== i-1])
     }
 
     K <- cumsum(K)
