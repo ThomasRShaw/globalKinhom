@@ -69,7 +69,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
     } else { # !isotropic
         if (interpolate) {
             dhx <- sigma/interpolate.fac
-            npt <- ceil(rmax/dhx)
+            npt <- ceiling(rmax/dhx)
             xs <- (-npt:npt)*dhx
             lathx <- outer(xs, xs, function(x,y) x)
             lathy <- outer(xs, xs, function(x,y) y)
@@ -91,7 +91,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
 
         if (interpolate) {
             dim(f) <- c(2*npt + 1, 2*npt + 1)
-            latf.im <- as.im(f, xrows=xs, ycols=ys)
+            latf.im <- as.im(t(f), xrow=xs, ycol=xs)
 
             f <- interp.im(latf.im, hx, hy)
         }
@@ -118,7 +118,7 @@ Kinhomcross <-
 function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
             rmax=NULL, breaks=NULL, normtol=.001, analytical=NULL,
             discrete.lambda=FALSE, interpolate=FALSE, isotropic=FALSE,
-            interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL) {
+            interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL, interpolate.maxdx=diameter(as.owin(X))/100) {
     # Check inputs
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -161,7 +161,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     if (isotropic) {
         rh <- sqrt(hx^2 + hy^2)
         if (interpolate) {
-            dr <- sigma/interpolate.fac
+            dr <- min(sigma/interpolate.fac, interpolate.maxdx)
             rcheck <- seq(0, max(rh) + dr, by=dr)
         } else {
             rcheck <- rh
@@ -185,8 +185,8 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
         }
     } else { # !isotropic
         if (interpolate) {
-            dhx <- sigma/interpolate.fac
-            npt <- ceil(rmax/dhx)
+            dhx <- min(sigma/interpolate.fac, interpolate.maxdx)
+            npt <- ceiling(rmax/dhx)
             xs <- (-npt:npt)*dhx
             lathx <- outer(xs, xs, function(x,y) x)
             lathy <- outer(xs, xs, function(x,y) y)
@@ -209,7 +209,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
         if (interpolate) {
             dim(f) <- c(2*npt + 1, 2*npt + 1)
-            latf.im <- as.im(f, xrows=xs, ycols=ys)
+            latf.im <- as.im(t(f), xcol=xs, yrow=xs)
 
             f <- interp.im(latf.im, hx, hy)
         }
