@@ -215,12 +215,12 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
         }
     }
 
-    if (analytical || is.null(lambdaX))
+    if (is.null(lambdaX))
         lambdaXs <- density.ppp(X, ..., sigma, at="points", leaveoneout=leaveoneout)
-        else lambdaXs <- lambdaX(X$x, X$y)
-    if (analytical || is.null(lambdaX))
+    else lambdaXs <- lambdaX(X$x, X$y)
+    if (is.null(lambdaX))
         lambdaYs <- density.ppp(Y, ..., sigma, at="points", leaveoneout=leaveoneout)
-        else lambdaYs <- lambdaY(Y$x, Y$y)
+    else lambdaYs <- lambdaY(Y$x, Y$y)
     lambda2s <- lambdaXs[pairs$i]*lambdaYs[pairs$j]
     edgewt <- edge.Trans(dx=hx, dy=hy, W=W, paired=TRUE)
     wIJ <- edgewt/lambda2s
