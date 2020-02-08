@@ -64,7 +64,8 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
 
         f <- fcheck
         if (interpolate) {
-            f <- approx(rchecks, f, xout=rh)$y
+            spl <- smooth.spline(rchecks, f, df=length(rchecks))
+            f <- predict(spl, rh)$y
         }
     } else { # !isotropic
         if (interpolate) {
@@ -106,10 +107,15 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
     K <- cumsum(K)*2 # make up for twice=FALSE above
     Kf <- data.frame(r=r, theo=pi*r^2, global=K)
 
-    fv(Kf, argu="r", ylab=quote(K(r)), valu="global", fmla= . ~ r,
+    out <- fv(Kf, argu="r", ylab=quote(K(r)), valu="global", fmla= . ~ r,
         alim=c(0,rmax), labl=c("r", "%s[Pois](r)", "%s[global](r)"),
         desc=c("distance argument r", "theoretical poison %s",
         "global correction %s"), fname="K")
+
+    attr(out, "fs") <- f
+    attr(out, "prs") <- pairs
+
+    out
 }
 
 # If lambdaX and lambdaY are both NULL, use the analytical kernel
@@ -153,8 +159,8 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     }
 
     pairs <- crosspairs(X, Y, rmax)
-    hx <- pairs$xi - pairs$xj
-    hy <- pairs$yi - pairs$yj
+    hx <- pairs$dx #pairs$xi - pairs$xj
+    hy <- pairs$dy #pairs$yi - pairs$yj
     pairdist <- pairs$d
 
     # Get fs, depending on isotropic and interpolate options
@@ -181,7 +187,8 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
         f <- fcheck
         if (interpolate) {
-            f <- approx(rcheck, f, xout=rh)$y
+            spl <- smooth.spline(rcheck, f, df=length(rcheck))
+            f <- predict(spl, rh)$y
         }
     } else { # !isotropic
         if (interpolate) {
@@ -246,6 +253,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
     attr(out, "fs") <- f
     attr(out, "prs") <- pairs
+    attr(out, "wIJ") <- wIJ
     out
 }
 

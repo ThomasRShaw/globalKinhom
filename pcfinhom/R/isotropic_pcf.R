@@ -2,10 +2,10 @@
 # intensity estimation. ... are passed to densityfun.ppp()
 pcfinhom <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
-            kernel="epanechnikov",
-            bw=NULL, stoyan=0.15, normtol=.001, ratio=FALSE,
-            discrete.lambda=FALSE, divisor=c("r", "d"), analytical=NULL,
-            leaveoneout=TRUE, interpolate=TRUE, interpolate.fac=10) {
+            kernel="epanechnikov", bw=NULL, stoyan=0.15, normtol=.001,
+            ratio=FALSE, discrete.lambda=FALSE, divisor=c("r", "d"),
+            analytical=NULL, leaveoneout=TRUE, interpolate=TRUE,
+            interpolate.fac=10, exp_prs=NULL) {
     verifyclass(X, "ppp")
     W <- as.owin(X)
     areaW <- area(W)
@@ -66,8 +66,6 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
         gammas <- predict(spl, r)$y
     }
 
-    gammas <- gammas * 2 * pi * r
-
     prs <- closepairs(X, rmax + 2*bw, what='ijd')
 
     df <- data.frame(r=r, theo=rep.int(1, length(r)))
@@ -78,7 +76,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     bw.used <- NULL
 
     kdenG <- sewpcf(prs$d, 1, denargs, 1, divisor=divisor)
-    gG <- kdenG$g*2*pi*r/gammas
+    gG <- kdenG$g/gammas
     bw.used <- attr(kdenG, "bw")
     if (!ratio) {
         out <- bind.fv(out, data.frame(global=gG), "hat(%s)[global](r)",
@@ -95,10 +93,10 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
         lambdas <- lambda(X)
     }
     lambda2 <- lambdas[prs$i]*lambdas[prs$j]
-
     edgewt <- edge.Trans(W=W, dx=X$x[prs$i] - X$x[prs$j], dy=X$y[prs$i]-X$y[prs$j],
                             paired=TRUE)
-    kdenL <- sewpcf(prs$d, edgewt/lambda2, denargs, areaW, divisor="r")
+    wIJ <- edgewt/lambda2
+    kdenL <- sewpcf(prs$d, wIJ, denargs, areaW, divisor="r")
     gL <- kdenL$g
     if (!ratio) {
         out <- bind.fv(out, data.frame(local=gL), "hat(%s)[local](r)",
@@ -115,6 +113,10 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     if (ratio)
         out <- conform.ratfv(out)
     attr(out, "bw") <- bw.used
+
+    attr(out, "prs") <- prs
+    attr(out, "wIJ") <- prs
+    attr(out, "fs") <- gammas
 
     out
 }
@@ -190,8 +192,6 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
         gammas <- predict(spl, r)$y
     }
 
-    gammas <- gammas * 2 * pi * r
-
     prs <- crosspairs(X, Y, rmax + 2*bw, what='all')
 
     df <- data.frame(r=r, theo=rep(1, length(r)))
@@ -203,7 +203,7 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     bw.used <- NULL
 
     kdenG <- sewpcf(prs$d, 1, denargs, 1, divisor=divisor)
-    cG <- kdenG$g*2*pi*r/gammas
+    cG <- kdenG$g/gammas
     bw.used <- attr(kdenG, "bw")
     if (!ratio) {
         out <- bind.fv(out, data.frame(global=cG), "hat(%s)[global](r)",
@@ -226,9 +226,10 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
         lY <- lambdaY(Y)
     }
     lambda2 <- lX[prs$i]*lY[prs$j]
-
     edgewt <- edge.Trans(W=W, dx=prs$dx, dy=prs$dy, paired=TRUE)
-    kdenL <- sewpcf(prs$d, edgewt/lambda2, denargs, areaW, divisor=divisor)
+    wIJ <- edgewt/lambda2
+
+    kdenL <- sewpcf(prs$d, wIJ, denargs, areaW, divisor=divisor)
     cL <- kdenL$g
     if (!ratio) {
         out <- bind.fv(out, data.frame(local=cL), "hat(%s)[local](r)",
@@ -246,6 +247,9 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
         out <- conform.ratfv(out)
 
     attr(out, "bw") <- bw.used
+    attr(out, "wIJ") <- wIJ
+    attr(out, "prs") <- prs
+    attr(out, "fs") <- gammas
 
     out
 }
