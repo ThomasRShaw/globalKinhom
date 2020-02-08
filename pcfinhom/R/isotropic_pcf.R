@@ -63,8 +63,9 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     }
 
     if (interpolate) {
-        spl <- smooth.spline(r_test, gammas, df=length(r_test))
-        gammas <- predict(spl, r)$y
+        gammas <- approx(r_test, gammas, r, rule=2)$y
+#         spl <- smooth.spline(r_test, gammas, df=length(r_test))
+#         gammas <- predict(spl, r)$y
     }
 
     prs <- closepairs(X, rmax + 2*bw, what='ijd')
@@ -190,8 +191,9 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     }
 
     if (interpolate) {
-        spl <- smooth.spline(r_test, gammas, df=length(r_test))
-        gammas <- predict(spl, r)$y
+        gammas <- approx(r_test, gammas, r, rule=2)$y
+#         spl <- smooth.spline(r_test, gammas, df=length(r_test))
+#         gammas <- predict(spl, r)$y
     }
 
     prs <- crosspairs(X, Y, rmax + 2*bw, what='all')

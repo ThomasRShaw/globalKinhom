@@ -42,12 +42,11 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
 
     # Get fs, depending on isotropic and interpolate options
     if (isotropic) {
-        rh <- sqrt(hx^2 + hy^2)
         if (interpolate) {
             dr <- min(sigma/interpolate.fac, interpolate.maxdx)
-            rcheck <- seq(0, max(rh) + dr, by=dr)
+            rcheck <- seq(0, max(pairdist) + dr, by=dr)
         } else {
-            rcheck <- rh
+            rcheck <- pairdist
         }
 
         if (analytical) {
@@ -65,8 +64,10 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
 
         f <- fcheck
         if (interpolate) {
-            spl <- smooth.spline(rchecks, f, df=length(rchecks))
-            f <- predict(spl, rh)$y
+            f <- approx(rcheck, f, pairdist, rule=2)$y
+# old way
+#             spl <- smooth.spline(rcheck, f, df=length(rchecks))
+#             f <- predict(spl, rh)$y
         }
     } else { # !isotropic
         if (interpolate) {
@@ -188,8 +189,9 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
         f <- fcheck
         if (interpolate) {
-            spl <- smooth.spline(rcheck, f, df=length(rcheck))
-            f <- predict(spl, rh)$y
+            f <- approx(rchecks, f, pairdist, rule=2)$y
+#             spl <- smooth.spline(rcheck, f, df=length(rcheck))
+#             f <- predict(spl, rh)$y
         }
     } else { # !isotropic
         if (interpolate) {
@@ -275,3 +277,73 @@ fixLambda <- function(lambdaX, X, discrete.lambda, sigma, ...) {
 
     lambdaX
 }
+
+
+get.fs <- function(rh=NULL, hx=NULL, hy=NULL, interpolate, interpolate.fac,
+        interpolate.maxdx, leaveoneout, X=NULL, Y=NULL, lambdaX=NULL,
+        lambdaY=NULL, exp_prs, rmax) {
+    # Get fs, depending on isotropic and interpolate options
+    if (isotropic) {
+        rh <- sqrt(hx^2 + hy^2)
+        if (interpolate) {
+            dr <- min(sigma/interpolate.fac, interpolate.maxdx)
+            rcheck <- seq(0, max(rh) + dr, by=dr)
+        } else {
+            rcheck <- rh
+        }
+
+        if (analytical) {
+            Y <- if (leaveoneout) NULL else X
+            fcheck <- expectedCrossPairs_kernel_iso(X,Y, rcheck, sigma=sigma)
+        } else if (is.null(exp_prs)) {
+            fcheck <- expectedPairs_iso(lambda, rcheck, tol=normtol)
+        } else {
+            if (is.function(exp_prs)) {
+                fcheck <- exp_prs(rcheck)
+            } else {
+                stop("exp_pairs is unknown format")
+            }
+        }
+
+        f <- fcheck
+
+        if (interpolate) {
+            spl <- smooth.spline(rchecks, f, df=length(rchecks))
+            f <- predict(spl, rh)$y
+        }
+    } else { # !isotropic
+        if (interpolate) {
+            dhx <- min(sigma/interpolate.fac, interpolate.maxdx)
+            npt <- ceiling(rmax/dhx)
+            xs <- (-npt:npt)*dhx
+            lathx <- outer(xs, xs, function(x,y) x)
+            lathy <- outer(xs, xs, function(x,y) y)
+        } else {
+            lathx <- hx
+            lathy <- hy
+        }
+
+        if (analytical) {
+            Y <- if (leaveoneout) NULL else X
+            f <- expectedCrossPairs_kernel(X, Y, lathx, lathy, sigma)
+        } else if (is.null(exp_prs)) {
+            f <- expectedPairs(lambda, lathx, lathy, tol=normtol)
+        } else {
+            if (is.function(exp_prs)) {
+                f <- exp_prs(lathx, lathy)
+            }
+        }
+
+        if (interpolate) {
+            dim(f) <- c(2*npt + 1, 2*npt + 1)
+            latf.im <- as.im(t(f), xrow=xs, ycol=xs)
+
+            f <- interp.im(latf.im, hx, hy)
+        }
+    }
+
+    f
+}
+
+interp.fn.2d <- function(fn, x, y, dx) {
+    latx <- 1 }
