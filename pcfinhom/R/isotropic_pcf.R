@@ -2,10 +2,11 @@
 # intensity estimation. ... are passed to densityfun.ppp()
 pcfinhom <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
-            kernel="epanechnikov", bw=NULL, stoyan=0.15, normtol=.001,
-            ratio=FALSE, discrete.lambda=FALSE, divisor=c("r", "d"),
-            analytical=NULL, leaveoneout=TRUE, interpolate=TRUE,
-            interpolate.fac=10, exp_prs=NULL) {
+    kernel="epanechnikov", bw=NULL, stoyan=0.15, normtol=.001, ratio=FALSE,
+    discrete.lambda=FALSE, divisor=c("r", "d"), analytical=NULL,
+    leaveoneout=TRUE, interpolate=TRUE, interpolate.fac=10, exp_prs=NULL,
+    interpolate.maxdx=diameter(as.owin(X))/100) {
+
     verifyclass(X, "ppp")
     W <- as.owin(X)
     areaW <- area(W)
@@ -38,7 +39,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     }
 
     if (interpolate) {
-        dr <- sigma / interpolate.fac
+        dr <- min(sigma / interpolate.fac, interpolate.maxdx)
         if (dr < r[2]) {
             interpolate=FALSE
             r_test <- r
@@ -125,7 +126,8 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     sigma=bw.CvL(X), r=NULL, rmax=NULL, kernel="epanechnikov", bw=NULL,
     stoyan=0.15, normtol=.001, ratio=FALSE, discrete.lambda=FALSE,
     divisor=c("r", "d"), analytical=NULL, interpolate=TRUE,
-    interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL) {
+    interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL,
+    interpolate.maxdx=diameter(as.owin(X))/100) {
 
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -163,7 +165,7 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     }
 
     if (interpolate) {
-        dr <- sigma/ interpolate.fac
+        dr <- min(sigma/ interpolate.fac, interpolate.maxdx)
         if (dr < r[2]) {
             interpolate=FALSE
             r_test <- r
