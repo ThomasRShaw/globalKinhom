@@ -39,13 +39,14 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     }
 
     if (interpolate) {
-        dr <- min(sigma / interpolate.fac, interpolate.maxdx)
-        if (dr < r[2]) {
+        dr <- min(sigma/ interpolate.fac, interpolate.maxdx)
+        if (dr < r[2])
             interpolate=FALSE
-            r_test <- r
-        } else {
-            r_test <- seq(r[2], rmax - r[2] + dr, by=dr)
-        }
+    }
+    if (interpolate) {
+        r_test <- seq(0, rmax - r[2] + dr, by=dr)
+    } else {
+        r_test <- r
     }
 
     if (analytical) {
@@ -169,12 +170,13 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
 
     if (interpolate) {
         dr <- min(sigma/ interpolate.fac, interpolate.maxdx)
-        if (dr < r[2]) {
+        if (dr < r[2])
             interpolate=FALSE
-            r_test <- r
-        } else {
-            r_test <- seq(r[2], rmax - r[2] + dr, by=dr)
-        }
+    }
+    if (interpolate) {
+        r_test <- seq(0, rmax - r[2] + dr, by=dr)
+    } else {
+        r_test <- r
     }
 
     if (analytical) {
