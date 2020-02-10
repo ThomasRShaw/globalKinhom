@@ -66,7 +66,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
         if (interpolate) {
             f <- approx(rcheck, f, pairdist, rule=2)$y
 # old way
-#             spl <- smooth.spline(rcheck, f, df=length(rchecks))
+#             spl <- smooth.spline(rcheck, f, df=length(rcheck))
 #             f <- predict(spl, rh)$y
         }
     } else { # !isotropic
@@ -192,7 +192,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
         f <- fcheck
         if (interpolate) {
-            f <- approx(rchecks, f, pairdist, rule=2)$y
+            f <- approx(rcheck, f, pairdist, rule=2)$y
 #             spl <- smooth.spline(rcheck, f, df=length(rcheck))
 #             f <- predict(spl, rh)$y
         }
@@ -313,7 +313,7 @@ get.fs <- function(rh=NULL, hx=NULL, hy=NULL, interpolate, interpolate.fac,
         f <- fcheck
 
         if (interpolate) {
-            spl <- smooth.spline(rchecks, f, df=length(rchecks))
+            spl <- smooth.spline(rcheck, f, df=length(rcheck))
             f <- predict(spl, rh)$y
         }
     } else { # !isotropic
