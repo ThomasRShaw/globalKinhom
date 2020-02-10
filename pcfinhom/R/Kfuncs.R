@@ -8,7 +8,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
             analytical=NULL, normtol=.001, discrete.lambda=FALSE,
             interpolate=FALSE, interpolate.fac=10, isotropic=FALSE,
             leaveoneout=FALSE, exp_prs=NULL,
-            interpolate.maxdx=diameter(as.owin(X))/100) {
+            interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
     # Check inputs
     verifyclass(X, "ppp")
     W <- as.owin(X)
@@ -114,8 +114,10 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
         desc=c("distance argument r", "theoretical poison %s",
         "global correction %s"), fname="K")
 
-    attr(out, "fs") <- f
-    attr(out, "prs") <- pairs
+    if (dump) {
+        attr(out, "fs") <- f
+        attr(out, "prs") <- pairs
+    }
 
     out
 }
@@ -126,7 +128,8 @@ Kinhomcross <-
 function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
             rmax=NULL, breaks=NULL, normtol=.001, analytical=NULL,
             discrete.lambda=FALSE, interpolate=FALSE, isotropic=FALSE,
-            interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL, interpolate.maxdx=diameter(as.owin(X))/100) {
+            interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL,
+            interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
     # Check inputs
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -254,9 +257,11 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
         desc=c("distance argument r", "theoretical poison %s",
         "global correction %s", "local correction %s"), fname="K")
 
-    attr(out, "fs") <- f
-    attr(out, "prs") <- pairs
-    attr(out, "wIJ") <- wIJ
+    if (dump) {
+        attr(out, "fs") <- f
+        attr(out, "prs") <- pairs
+        attr(out, "wIJ") <- wIJ
+    }
     out
 }
 

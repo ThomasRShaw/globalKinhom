@@ -5,7 +5,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     kernel="epanechnikov", bw=NULL, stoyan=0.15, normtol=.001, ratio=FALSE,
     discrete.lambda=FALSE, divisor=c("r", "d"), analytical=NULL,
     leaveoneout=TRUE, interpolate=TRUE, interpolate.fac=10, exp_prs=NULL,
-    interpolate.maxdx=diameter(as.owin(X))/100) {
+    interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
 
     verifyclass(X, "ppp")
     W <- as.owin(X)
@@ -116,9 +116,11 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
         out <- conform.ratfv(out)
     attr(out, "bw") <- bw.used
 
-    attr(out, "prs") <- prs
-    attr(out, "wIJ") <- prs
-    attr(out, "fs") <- gammas
+    if (dump) {
+        attr(out, "prs") <- prs
+        attr(out, "wIJ") <- prs
+        attr(out, "fs") <- gammas
+    }
 
     out
 }
@@ -128,7 +130,7 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     stoyan=0.15, normtol=.001, ratio=FALSE, discrete.lambda=FALSE,
     divisor=c("r", "d"), analytical=NULL, interpolate=TRUE,
     interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL,
-    interpolate.maxdx=diameter(as.owin(X))/100) {
+    interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
 
     verifyclass(X, "ppp")
     verifyclass(Y, "ppp")
@@ -251,9 +253,11 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
         out <- conform.ratfv(out)
 
     attr(out, "bw") <- bw.used
-    attr(out, "wIJ") <- wIJ
-    attr(out, "prs") <- prs
-    attr(out, "fs") <- gammas
+    if (dump) {
+        attr(out, "wIJ") <- wIJ
+        attr(out, "prs") <- prs
+        attr(out, "fs") <- gammas
+    }
 
     out
 }
