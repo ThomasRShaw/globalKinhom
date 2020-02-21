@@ -69,7 +69,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
 #         gammas <- predict(spl, r)$y
     }
 
-    prs <- closepairs(X, rmax + 2*bw, what='ijd')
+    prs <- closepairs(X, rmax + hmax, what='ijd')
 
     df <- data.frame(r=r, theo=rep.int(1, length(r)))
     out <- ratfv(df, NULL, gammas, "r", quote(g(r)), "theo",
@@ -200,7 +200,7 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
 #         gammas <- predict(spl, r)$y
     }
 
-    prs <- crosspairs(X, Y, rmax + 2*bw, what='all')
+    prs <- crosspairs(X, Y, rmax + hmax, what='all')
 
     df <- data.frame(r=r, theo=rep(1, length(r)))
     out <- ratfv(df, NULL, gammas, "r", quote(c(r)), "theo", NULL, alim,
