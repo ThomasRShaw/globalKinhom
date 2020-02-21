@@ -308,3 +308,297 @@ expectedCrossPairs_iso <- function(rho1, rho2=NULL, r,
     epr[valid_r] <- epr[valid_r] * winwts[valid_r] / sampwts[valid_r]
     epr
 }
+
+ep_kernel_nodiggle <- function(X,hx,hy,sigma,tol=.005,excess.only=FALSE) {
+
+#TODO: validate inputs. 
+CoV <- rep(Inf,length(hx))
+
+num_samples <- numeric(length(hx))
+result <- numeric(length(hx))
+result2 <- numeric(length(hx))
+
+winwts <- (1-abs(hx))*(1-abs(hy))
+validh <- which(winwts > 0)
+inds <- validh
+
+x <- X$x; y <- X$y;
+n <- length(x)
+
+allhx <- hx
+allhy <- hy
+
+fac <- (2*pi*sigma^2)^(-2)
+
+while (any(CoV > tol)) {
+    # MC sample u,v
+    u <- runif(1)
+    v <- runif(1)
+
+    theseh <- (allhx > -u) & (allhx < 1-u) & (allhy > -v) & (allhy < 1-v) & (CoV > tol)
+
+    if (!any(theseh)) next
+
+    hx <- allhx[theseh]
+    hy <- allhy[theseh]
+
+    up <- u + hx
+    vp <- v + hy
+
+    all_weights <- diggle_weights2(c(u,up),c(v,vp),sigma)
+    w <- all_weights[1]*all_weights[1 + (1:length(hx))]
+
+    iterm <- exp(-((u - x)^2 + (v - y)^2)/(2*sigma^2))
+    jterms <- outer(x, up, function(x, up) exp(-(up - x)^2/(2*sigma^2))) *
+                outer(y, vp, function(x, up) exp(-(up - x)^2/(2*sigma^2)))
+
+    if (!excess.only) {
+        newterms <- numeric(length(hx))
+        if (length(hx) == 1) {
+            for (i in 1:n) {
+
+                js <- (1:n) != i
+                newterms <- newterms + iterm[i]*sum(jterms[js,])
+            }
+        } else {
+            for (i in 1:n) {
+
+                js <- (1:n) != i
+                newterms <- newterms + iterm[i]*colSums(jterms[js,])
+            }
+        }
+    } else {
+        newterms <- colSums(iterm*jterms)
+    }
+
+    result[theseh] <- result[theseh] + newterms * w
+    result2[theseh] <- result2[theseh] + (newterms * w)^2
+
+    num_samples[theseh] <- num_samples[theseh] + 1
+
+    sd_est <- ( sqrt( (num_samples[theseh]*result2[theseh] - result[theseh]^2) / (num_samples[theseh] - 1))
+                        / result[theseh])
+
+    sd_est[num_samples[theseh] < 10] <- Inf
+
+
+    #if (min(num_samples) > 1000) break
+    #CoV[theseh] <- 1000*tol/num_samples[theseh]
+    CoV[theseh] <- sd_est
+}
+
+print(c(min(num_samples), mean(num_samples), max(num_samples), sd(num_samples)))
+
+result/num_samples*winwts*fac
+
+ 
+}
+
+diggle_weights2 <- function(x, y, sigma) { #TODO: support windows that aren't unit square?
+#    x <- coords(X)$x
+#    y <- coords(X)$y
+#    W <- as.owin(X)
+#    stopifnot("rectangle" == W$type)
+#    xrange <- W$xrange
+#    yrange <- W$yrange
+    xrange <- c(0,1)
+    yrange <- c(0,1)
+    1/((pnorm((xrange[2]-x)/sigma) - pnorm((xrange[1] - x)/sigma)) *
+                (pnorm((yrange[2] - y)/sigma) - pnorm((yrange[1] - y)/sigma)))
+}
+
+expectedCrossPairs_tess <- function(X, rho1, rho2=NULL, hx, hy=NULL,
+        method=c("mc", "lattice"), tol=.005, dx=diff(as.owin(rho1)$xrange)/200,
+        maxeval=1e6, maxsamp=5e3, minus.excess=FALSE, nwin=10) {
+
+    # Validate arguments
+    stopifnot(is.im(rho1) || inherits(rho1, "funxy"))
+    if (is.im(rho1)) {
+        rho1.im <- rho1
+        rho1 <- funxy(function(x,y) interp.im(rho1.im, x, y), as.owin(rho1.im))
+    }
+    cross <- !is.null(rho2)
+    if (cross) {
+        stopifnot(is.im(rho2) || inherits(rho2, "funxy"))
+        if (is.im(rho2)) {
+            rho2.im <- rho2
+            rho2 <- funxy(function(x,y) interp.im(rho2.im, x, y), as.owin(rho2.im))
+        }
+    } else {
+        rho2 <- rho1 # for convenience later
+    }
+    method <- match.arg(method)
+
+    use.mc <- FALSE
+    use.lattice <- FALSE
+    if (method == "mc") {
+        use.mc <- TRUE
+        stopifnot(is.numeric(tol) && tol > 0)
+    } else if (method == "lattice") {
+        use.lattice <- TRUE
+        stopifnot(is.numeric(dx) && dx > 0 && dx < as.owin(rho1))
+    }
+
+    # Check windows...
+    W <- as.owin(rho1)
+    if (cross) {
+        W2 <- as.owin(rho2)
+        stopifnot(W$xrange == W2$xrange && W$yrange == W2$yrange)
+    }
+
+    # Get coordinates of h
+    xy <- xy.coords(hx, hy)
+    allhx <- xy$x
+    allhy <- xy$y
+    nh <- length(hx)
+
+
+    if (is.rectangle(W)) {
+        nSW <- nwin^2
+        xrange <- W$xrange
+        yrange <- W$yrange
+        dx <- diff(xrange)/nwin
+        dy <- diff(yrange)/nwin
+
+        xl <- seq(xrange[1], xrange[2] - dx, by=dx)
+        xr <- xl + dx
+        xlr <- rbind(xl, xr)
+        yl <- seq(yrange[1], yrange[2] - dy, by=dy)
+        yr <- yl + dy
+        ylr <- rbind(yl, yr)
+
+        SW <- vector("list", nSW)
+        for (i in 1:nwin) for (j in 1:nwin)
+            SW[[i + (j-1)*nwin]] <- owin(xlr[,i],ylr[,j])
+
+    } else {
+        #DT <- dirichlet(X)
+        DT <- quadrats(W, nwin,nwin)
+        #SW <- DT$tiles # sampling windows
+        nSW <- DT$n
+# THis is the slow part!
+        SW <- lapply(as.list(1:nSW), function(i) as.owin(DT[i]))
+    }
+
+    #winwts[i,j] is the overlap of sample window i with W_{-h}
+    winwts <- matrix(0, nrow=nSW, ncol=nh)
+    for (j in 1:nh) {
+        Wshift <- shift(W, c(-allhx[j], -allhy[j]))
+        winwts[,j] <- sapply(SW, overlap.owin, Wshift)
+    }
+
+    # Generate MC sample points in each sample window
+    nper <- 10
+#     samplePP <- Map(runifpoint, SW, n=nper)
+#     samplex <- do.call(rbind, lapply(samplePP, function(s) s$x))
+#     sampley <- do.call(rbind, lapply(samplePP, function(s) s$y))
+    # so sample k will be samplex[,k]
+
+    winx <- sapply(SW, function(W) W$xrange[1])
+    winy <- sapply(SW, function(W) W$yrange[1])
+    samplex <- outer(winx, runif(nper, 0, dx), `+`)
+    sampley <- outer(winy, runif(nper, 0, dy), `+`)
+
+    # allocate results
+    epr <- matrix(0, nrow=nSW, ncol=nh)
+    epr2 <- matrix(0, nrow=nSW, ncol=nh)
+    sampwts <- matrix(0, nrow=nSW, ncol=nh)
+
+    valid_h <- (winwts > 0) # if winwts<=0 then f(h) = 0
+
+    # state of looping
+    k <- 0
+    thous <- 0
+    while (TRUE) {
+        k <- k + 1
+
+        if (k > ncol(samplex)) {
+            samplePP <- Map(runifpoint, SW, n=nper)
+#             samplex <- do.call(rbind, lapply(samplePP, function(s) s$x))
+#             sampley <- do.call(rbind, lapply(samplePP, function(s) s$y))
+            samplex <- outer(winx, runif(nper, 0, dx), `+`)
+            sampley <- outer(winy, runif(nper, 0, dy), `+`)
+            k <- 1
+            thous <- thous + 1
+        }
+
+        ux <- samplex[,k]
+        uy <- sampley[,k]
+
+        hx <- allhx
+        hy <- allhy
+
+        # Corresponding intensity(s)
+        rho1U <- rho1(ux, uy)
+        # rho2U <- if (cross) rho2(ux, uy) else rho1U
+
+        # Locations of second point, for each h
+        Uplushx <- outer(ux, hx, `+`)
+        Uplushy <- outer(uy, hy, `+`)
+#         Uminushx <- outer(ux, hx, `-`)
+#         Uminushy <- outer(uy, hy, `-`)
+
+        # Are these in the window?
+        Uplus_inside <- matrix(FALSE, nrow=nSW, ncol=nh) # so that it's logical
+        Uplus_inside[valid_h] <- inside.owin(Uplushx[valid_h], Uplushy[valid_h], W)
+
+        inds <- Uplus_inside
+
+        # Where yes, corresponding intensity(s)
+        rhoUplus <- matrix(0, nrow=nSW, ncol=nh)
+        rhoUplus[inds] <- rho2(as.vector(Uplushx[inds]), Uplushy[inds])
+
+        # Number of new points for each h?
+        sampwts[inds] <- sampwts[inds] + 1
+
+        # Update estimates
+        newterm <- (rho1U * rhoUplus)
+
+        if (minus.excess) {
+            ww <- diggle_weights2(ux, uy, sigma)
+            wwp <- diggle_weights2(Uplushx, Uplushy, sigma)
+
+            s <- matrix(0, nrow=nrow(Uplushx), ncol=ncol(Uplushx))
+            for (l in 1:npoints(X)) {
+                jterms <- matrix(0, nrow=nrow(Uplushx), ncol=ncol(Uplushx))
+                x <- X$x[l]
+                y <- X$y[l]
+                
+                # one for each sample u
+                iterm <- exp(-((ux - x)^2 + (uy - y)^2)/(2*sigma^2))
+                # each u by each h
+                jterms[inds] <- exp(-((Uplushx[inds] - x)^2 +
+                                        (Uplushy[inds] - y)^2)/(2*sigma^2))
+
+                s <- s + iterm*jterms
+                #browser()
+            }
+            newterm <- newterm - s*(ww*wwp)/(2*pi*sigma^2)^2
+        }
+        epr <- (epr + newterm)
+        epr2 <- (epr2 + newterm^2)
+
+        # Figure out if we're done
+        if (any(apply(sampwts, 2, max) < 2)) next
+        # estimate the standard error of the estimates
+        sd_est <- winwts^2*( (sampwts*epr2 - epr^2) / (sampwts - 1)) / epr^2
+        sd_est[is.nan(sd_est)] <- 0
+
+        if (any(sqrt(colSums(sd_est)) > tol)) next
+
+        print(c(k+nper*thous, min(colSums(sampwts)), min(rowSums(sampwts)), min(sampwts[valid_h])))
+
+        missingwinwts <- winwts
+        missingwinwts[sampwts > 1] <- 0
+        #print(colSums(missingwinwts)/colSums(winwts))
+        if (all(colSums(missingwinwts) < colSums(winwts)*tol)) break
+
+    }
+    # Final output. sampwts is the number of applicable monte carlo samples
+    # winwts is the area of W \cap W_{-h}
+
+    epr[valid_h] <- epr[valid_h] * winwts[valid_h] / sampwts[valid_h]
+    epr[sampwts==0] <- 0
+    #list(colSums(epr),winwts,sampwts)
+    colSums(epr)
+}
