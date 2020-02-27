@@ -453,6 +453,7 @@ expectedCrossPairs_tess <- function(X, rho1, rho2=NULL, hx, hy=NULL,
     nh <- length(hx)
 
 
+    # Generate quadrats
     if (is.rectangle(W)) {
         nSW <- nwin^2
         xrange <- W$xrange
@@ -470,7 +471,6 @@ expectedCrossPairs_tess <- function(X, rho1, rho2=NULL, hx, hy=NULL,
         SW <- vector("list", nSW)
         for (i in 1:nwin) for (j in 1:nwin)
             SW[[i + (j-1)*nwin]] <- owin(xlr[,i],ylr[,j])
-
     } else {
         #DT <- dirichlet(X)
         DT <- quadrats(W, nwin,nwin)
@@ -489,11 +489,6 @@ expectedCrossPairs_tess <- function(X, rho1, rho2=NULL, hx, hy=NULL,
 
     # Generate MC sample points in each sample window
     nper <- 10
-#     samplePP <- Map(runifpoint, SW, n=nper)
-#     samplex <- do.call(rbind, lapply(samplePP, function(s) s$x))
-#     sampley <- do.call(rbind, lapply(samplePP, function(s) s$y))
-    # so sample k will be samplex[,k]
-
     winx <- sapply(SW, function(W) W$xrange[1])
     winy <- sapply(SW, function(W) W$yrange[1])
     samplex <- outer(winx, runif(nper, 0, dx), `+`)
@@ -512,10 +507,9 @@ expectedCrossPairs_tess <- function(X, rho1, rho2=NULL, hx, hy=NULL,
     while (TRUE) {
         k <- k + 1
 
+        # Generate more sample points if necessary
         if (k > ncol(samplex)) {
             samplePP <- Map(runifpoint, SW, n=nper)
-#             samplex <- do.call(rbind, lapply(samplePP, function(s) s$x))
-#             sampley <- do.call(rbind, lapply(samplePP, function(s) s$y))
             samplex <- outer(winx, runif(nper, 0, dx), `+`)
             sampley <- outer(winy, runif(nper, 0, dy), `+`)
             k <- 1
@@ -525,18 +519,16 @@ expectedCrossPairs_tess <- function(X, rho1, rho2=NULL, hx, hy=NULL,
         ux <- samplex[,k]
         uy <- sampley[,k]
 
+        # TODO: stop sampling hs that have converged?
         hx <- allhx
         hy <- allhy
 
         # Corresponding intensity(s)
         rho1U <- rho1(ux, uy)
-        # rho2U <- if (cross) rho2(ux, uy) else rho1U
 
         # Locations of second point, for each h
         Uplushx <- outer(ux, hx, `+`)
         Uplushy <- outer(uy, hy, `+`)
-#         Uminushx <- outer(ux, hx, `-`)
-#         Uminushy <- outer(uy, hy, `-`)
 
         # Are these in the window?
         Uplus_inside <- matrix(FALSE, nrow=nSW, ncol=nh) # so that it's logical
@@ -548,7 +540,7 @@ expectedCrossPairs_tess <- function(X, rho1, rho2=NULL, hx, hy=NULL,
         rhoUplus <- matrix(0, nrow=nSW, ncol=nh)
         rhoUplus[inds] <- rho2(as.vector(Uplushx[inds]), Uplushy[inds])
 
-        # Number of new points for each h?
+        # Number of new points for each h/SW?
         sampwts[inds] <- sampwts[inds] + 1
 
         # Update estimates
@@ -580,18 +572,34 @@ expectedCrossPairs_tess <- function(X, rho1, rho2=NULL, hx, hy=NULL,
 
         # Figure out if we're done
         if (any(apply(sampwts, 2, max) < 2)) next
-        # estimate the standard error of the estimates
-        sd_est <- winwts^2*( (sampwts*epr2 - epr^2) / (sampwts - 1)) / epr^2
-        sd_est[is.nan(sd_est)] <- 0
 
-        if (any(sqrt(colSums(sd_est)) > tol)) next
-
-        print(c(k+nper*thous, min(colSums(sampwts)), min(rowSums(sampwts)), min(sampwts[valid_h])))
 
         missingwinwts <- winwts
         missingwinwts[sampwts > 1] <- 0
         #print(colSums(missingwinwts)/colSums(winwts))
-        if (all(colSums(missingwinwts) < colSums(winwts)*tol)) break
+        if (any(colSums(missingwinwts)/colSums(winwts) > tol)) next
+
+        # estimate the standard error of the estimates
+        #sd_est <- winwts^2*( (sampwts*epr2 - epr^2) / (sampwts - 1)) / epr^2
+        #sd_est[is.nan(sd_est)] <- 0
+        var_est <- (1/(sampwts*(sampwts-1)))*(epr2 - epr/sampwts)
+        var_est[is.nan(var_est) | is.infinite(var_est)] <- 0
+        var_est[(sampwts < 2) & valid_h] <- max(var_est)
+        var_est <- var_est*(winwts)^2
+
+        tot_sd_est <- sqrt(colSums(var_est))
+
+        mu_est <- winwts/sampwts * epr
+        mu_est[is.nan(mu_est)] <- 0
+        tot_mu_est <- colSums(mu_est)
+
+        #browser()
+        if (any(tot_mu_est == 0)) next
+        if (any(tot_sd_est/tot_mu_est > tol)) next
+
+        print(c(k+nper*thous, min(colSums(sampwts)), min(rowSums(sampwts)), min(sampwts[valid_h])))
+        #print(tot_sd_est/tot_mu_est)
+        break
 
     }
     # Final output. sampwts is the number of applicable monte carlo samples
