@@ -150,6 +150,8 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     # How to compute f?
     # if both lambdaX and lambdaY are missing, use an analytical kernel-based
     # estimator
+    lambdaX.given <- !is.null(lambdaX)
+    lambdaY.given <- !is.null(lambdaY)
     if (is.null(analytical)) {
         analytical <- is.null(lambdaX) && is.null(lambdaY) && is.null(exp_prs)
     }
@@ -228,12 +230,12 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
         }
     }
 
-    if (is.null(lambdaX))
-        lambdaXs <- density.ppp(X, ..., sigma, at="points", leaveoneout=leaveoneout)
-    else lambdaXs <- lambdaX(X$x, X$y)
-    if (is.null(lambdaX))
-        lambdaYs <- density.ppp(Y, ..., sigma, at="points", leaveoneout=leaveoneout)
-    else lambdaYs <- lambdaY(Y$x, Y$y)
+    if (!lambdaX.given) {
+        lambdaXs <- density.ppp(X, ..., sigma=sigma, at="points", leaveoneout=leaveoneout)
+    } else lambdaXs <- lambdaX(X$x, X$y)
+    if (!lambdaY.given) {
+        lambdaYs <- density.ppp(Y, ..., sigma=sigma, at="points", leaveoneout=leaveoneout)
+    } else lambdaYs <- lambdaY(Y$x, Y$y)
     lambda2s <- lambdaXs[pairs$i]*lambdaYs[pairs$j]
     edgewt <- edge.Trans(dx=hx, dy=hy, W=W, paired=TRUE)
     wIJ <- edgewt/lambda2s
