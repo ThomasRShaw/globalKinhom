@@ -7,7 +7,7 @@ Kglobal <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
             analytical=NULL, normtol=.001, discrete.lambda=FALSE,
             interpolate=FALSE, interpolate.fac=10, isotropic=FALSE,
-            leaveoneout=FALSE, exp_prs=NULL,
+            leaveoneout=TRUE, exp_prs=NULL,
             interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
     # Check inputs
     verifyclass(X, "ppp")
@@ -32,7 +32,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
         if (!is.null(sig_tmp <- attr(lambda, "sigma"))) {
             sigma <- sig_tmp
         }
-        lambda <- fixLambda(lambda, X, discrete.lambda, sigma, ...)
+        lambda <- fixLambda(lambda, X, discrete.lambda, sigma, leaveoneout=leaveoneout,...)
     }
 
     pairs <- closepairs(X, rmax, twice=FALSE)
@@ -159,8 +159,8 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
             sigma <- sig_tmp
         }
 
-        lambdaX <- fixLambda(lambdaX, X, discrete.lambda, sigma, ...)
-        lambdaY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, ...)
+        lambdaX <- fixLambda(lambdaX, X, discrete.lambda, sigma, leaveoneout=leaveoneout, ...)
+        lambdaY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, leaveoneout=leaveoneout, ...)
     }
 
     pairs <- crosspairs(X, Y, rmax)

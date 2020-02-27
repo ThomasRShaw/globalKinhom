@@ -53,8 +53,8 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
         Y <- if (leaveoneout) NULL else X
         gammas <- expectedCrossPairs_iso_kernel(X, Y, r_test, sigma=sigma)
     } else if (is.null(exp_prs)) {
-        lambda <- fixLambda(lambda, X, discrete.lambda, sigma, ...)
-        gammas <- expectedPairs_iso(lambda, r_test, tol=normtol)
+        ll <- fixLambda(lambda, X, discrete.lambda, sigma, ...)
+        gammas <- expectedPairs_iso(ll, r_test, tol=normtol)
     } else {
         if (is.function(exp_prs)) {
             gammas <- exp_prs(r_test)
@@ -182,10 +182,10 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     if (analytical) {
         gammas <- expectedCrossPairs_iso_kernel(X,Y, r_test, sigma=sigma)
     } else if (is.null(exp_prs)){
-        lambdaX <- fixLambda(lambdaX, X, discrete.lambda, sigma, ...)
-        lambdaY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, ...)
+        lX <- fixLambda(lambdaX, X, discrete.lambda, sigma, ...)
+        lY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, ...)
 
-        gammas <- expectedCrossPairs_iso(lambdaX, lambdaY, r_test, tol=normtol)
+        gammas <- expectedCrossPairs_iso(lX, lY, r_test, tol=normtol)
     } else {
         if (is.function(exp_prs)) {
             gammas <- exp_prs(r_test)
