@@ -1,36 +1,22 @@
 # This one has leave-one-out option
-expectedCrossPairs_withc <- function(X1, X2=NULL, hx,hy, sigma=bw.CvL,
-                    tol=.005, maxeval=1e5, maxsamp=5e2, leaveoneout=TRUE) {
+expectedPairs_withc <- function(X, hx,hy, sigma=bw.CvL,
+                    tol=.005, maxeval=1e6, maxsamp=5e3, leaveoneout=TRUE) {
     
     # Validate arguments
-    stopifnot(inherits(X1, "ppp"))
-    # sort X1 by x coordinate
-    ind <- order(X1$x)
-    coords(X1) <- coords(X1)[ind,]
-
-    if (is.null(X2)) {
-        cross <- FALSE
-    } else {
-        cross <- TRUE
-        warning("No cross-f implementation in c yet! using R version.")
-        leaveoneout <- FALSE
-        stopifnot(inherits(X2, "ppp"))
-        ind <- order(X2$x)
-        coords(X2) <- coords(X2)[ind,]
-    }
+    stopifnot(inherits(X, "ppp"))
+    # sort X by x coordinate
+    ind <- order(X$x)
+    coords(X) <- coords(X)[ind,]
 
     # take care of sigma
-    if (is.function(sigma)) sigma <- sigma(X1)
+    if (is.function(sigma)) sigma <- sigma(X)
     stopifnot(is.numeric(sigma))
 
     stopifnot(is.numeric(tol) && tol > 0)
 
     # Check windows
-    W <- as.owin(X1)
-    if (cross) {
-        W2 <- as.owin(X2)
-        stopifnot(W$xrange == W2$xrange && W$yrange== W2$yrange)
-    }
+    W <- as.owin(X)
+    stopifnot(W$xrange==c(0,1) && W$yrange==c(0,1))
 
     cutoff <- cutoff2Dkernel("gaussian", sigma=sigma, varcov=NULL,
                            scalekernel=TRUE, cutoff=NULL, fatal=TRUE)
@@ -52,10 +38,15 @@ expectedCrossPairs_withc <- function(X1, X2=NULL, hx,hy, sigma=bw.CvL,
         stop("non-rectangular windows not yet supported")
     }
 
-    #looping state
+    neghx <- hx < 0
+    hx[neghx] <- -hx[neghx]
+    hy[neghx] <- -hy[neghx]
+
     horder <- order(hx)
     allhx <- hx[horder]
     allhy <- hy[horder]
+
+    #looping state
     valid_h <- which(winwts > 0)
     nloop <- 0
     inds <- valid_h
@@ -70,14 +61,15 @@ expectedCrossPairs_withc <- function(X1, X2=NULL, hx,hy, sigma=bw.CvL,
         hx <- allhx[inds]
         hy <- allhy[inds]
 
+        minhx <- hx[1]
+
         # how many samples this iter?
         n_U <- max(1, min(floor(maxeval/nh_active), maxsamp))
 
-        u <- sort(runif(n_U))
+        u <- sort(runif(n_U,0,1-minhx))
         v <- runif(n_U)
 
-        if (cross) stop("not implemented atm")
-        else f_at_u <- rhorho(u,v, hx,hy, X1, sigma, cutoff) #, sorted=c("u","h","x"))
+        f_at_u <- rhorho_best(u,v, hx,hy, X, sigma, cutoff, sorted=c("u","h","x"), leaveoneout=TRUE)
 
         weights <- weights + f_at_u$samps
 
@@ -100,36 +92,22 @@ expectedCrossPairs_withc <- function(X1, X2=NULL, hx,hy, sigma=bw.CvL,
     ep[horder] <- ep
 }
 
-expectedCrossPairs_iso <- function(X1, X2=NULL, r, sigma=bw.CvL,
-                    tol=.001, maxeval=1e6, maxsamp=5e3, leaveoneout=TRUE) {
+expectedPairs_iso_withc <- function(X, r, sigma=bw.CvL, tol=.001, maxeval=1e6,
+                                    maxsamp=5e3, leaveoneout=TRUE) {
 
     # Validate arguments
-    stopifnot(inherits(X1, "ppp"))
-    # sort X1 by x coordinate
-    ind <- order(X1$x)
-    coords(X1) <- coords(X1)[ind,]
+    stopifnot(inherits(X, "ppp"))
+    # sort X by x coordinate
+    ind <- order(X$x)
+    coords(X) <- coords(X)[ind,]
 
-    if (is.null(X2)) {
-        cross <- FALSE
-    } else {
-        cross <- TRUE
-        leaveoneout <- FALSE
-        stopifnot(inherits(X2, "ppp"))
-        ind <- order(X2$x)
-        coords(X2) <- coords(X2)[ind,]
-    }
-
-    if (is.function(sigma)) sigma <- sigma(X1)
+    if (is.function(sigma)) sigma <- sigma(X)
     stopifnot(is.numeric(sigma))
 
     stopifnot(is.numeric(tol) && tol > 0)
 
     # Check windows
-    W <- as.owin(X1)
-    if (cross) {
-        W2 <- as.owin(X2)
-        stopifnot(W$xrange == W2$xrange && W$yrange== W2$yrange)
-    }
+    W <- as.owin(X)
 
     cutoff <- cutoff2Dkernel("gaussian", sigma=sigma, varcov=NULL,
                            scalekernel=TRUE, cutoff=NULL, fatal=TRUE)
@@ -182,18 +160,12 @@ expectedCrossPairs_iso <- function(X1, X2=NULL, r, sigma=bw.CvL,
             hx <- hx/rh
             hy <- hy/rh
 
-            uph <- outer(u, hx*r, `+`)
-            vph <- outer(v, hy*r, `+`)
+            f_at_u <- rhorho_best(u,v,hx*r,hy*r, X, sigma=sigma, cutoff=cutoff, leaveoneout=leaveoneout)
 
-            inside <- inside.owin(uph, vph, W)
-            
-            if (cross) f_at_u <- rho_prod_cross(u,v,hx*r,hy*r,X1,X2, sigma, cutoff)
-            else f_at_u <- rho_prod_auto(u,v,hx*r,hy*r, X1, sigma, leaveonout, cutoff)
+            weights <- weights + f_at_u$samps
 
-            weights <- weights + colSums(inside)
-
-            epr[inds] <- (epr[inds] + f_at_u)
-            epr2[inds] <- (epr2[inds] + f_at_u^2)
+            epr[inds] <- (epr[inds] + f_at_u$s)
+            epr2[inds] <- (epr2[inds] + f_at_u$s2)
         }
 
         sampwts[inds] <- weights

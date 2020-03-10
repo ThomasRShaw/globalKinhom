@@ -5,7 +5,7 @@
 # if no lambda, use an analytical kernel version of expectedCrossPairs
 Kglobal <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
-            analytical=NULL, normtol=.001, discrete.lambda=FALSE,
+            normtol=.001, discrete.lambda=FALSE,
             interpolate=FALSE, interpolate.fac=10, isotropic=FALSE,
             leaveoneout=TRUE, exp_prs=NULL,
             interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
@@ -22,22 +22,12 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
     r <- breaks$r
     rmax <- breaks$max
 
-    # do the analytical method if no lambda is provided
-    if (is.null(analytical)) {
-        analytical <- is.null(lambda) && is.null(exp_prs)
-    }
-
-    # Set up lambda if applicable
-    if (!analytical && is.null(exp_prs)) {
-        if (!is.null(sig_tmp <- attr(lambda, "sigma"))) {
-            sigma <- sig_tmp
-        }
-        lambda <- fixLambda(lambda, X, discrete.lambda, sigma, leaveoneout=leaveoneout,...)
-    }
+    lambda.given <- !is.null(lambda)
+    ep.given <- !is.null(exp_prs)
 
     pairs <- closepairs(X, rmax, twice=FALSE)
-    hx <- pairs$xi - pairs$xj
-    hy <- pairs$yi - pairs$yj
+    hx <- pairs$dx #pairs$xi - pairs$xj
+    hy <- pairs$dy #pairs$yi - pairs$yj
     pairdist <- pairs$d
 
     # Get fs, depending on isotropic and interpolate options
@@ -49,25 +39,17 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
             rcheck <- pairdist
         }
 
-        if (analytical) {
-            Y <- if (leaveoneout) NULL else X
-            fcheck <- expectedCrossPairs_kernel_iso(X,Y,rcheck, sigma=sigma)
-        } else if (is.null(exp_prs)) {
-            fcheck <- expectedPairs_iso(lambda, rcheck, tol=normtol)
+        if (ep.given) {
+            fcheck <- exp_prs(rcheck)
+        } else if (lambda.given) {
+            fcheck <- expectedPairs_iso(lambda,rcheck, tol=normtol)
         } else {
-            if (is.function(exp_prs)) {
-                fcheck <- exp_prs(rcheck)
-            } else {
-                stop("exp_pairs is unknown format")
-            }
+            fcheck <- expectedPairs_iso_withc(X,rcheck,sigma=sigma,tol=normtol,leaveoneout=leaveoneout)
         }
 
         f <- fcheck
         if (interpolate) {
             f <- approx(rcheck, f, pairdist, rule=2)$y
-# old way
-#             spl <- smooth.spline(rcheck, f, df=length(rcheck))
-#             f <- predict(spl, rh)$y
         }
     } else { # !isotropic
         if (interpolate) {
@@ -81,15 +63,12 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
             lathy <- hy
         }
 
-        if (analytical) {
-            Y <- if (leaveoneout) NULL else X
-            f <- expectedCrossPairs_kernel(X, Y, lathx, lathy, sigma)
-        } else if (is.null(exp_prs)) {
-            f <- expectedPairs(lambda, lathx, lathy, tol=normtol)
+        if (ep.given) {
+            f <- exp_prs(lathx, lathy)
+        } else if (lambda.given) {
+            f <- expectedPairs_iso(lambda,lathx,lathy,tol=normtol)
         } else {
-            if (is.function(exp_prs)) {
-                f <- exp_prs(lathx, lathy)
-            }
+            f <- expectedPairs_withc(X,lathx,lathy,sigma=sigma,tol=normtol,leaveoneout=leaveoneout)
         }
 
         if (interpolate) {

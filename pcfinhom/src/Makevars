@@ -1,1 +1,1 @@
-PKG_CFLAGS= -g -Wall -pedantic
+PKG_CFLAGS= -Wall -pedantic -O3

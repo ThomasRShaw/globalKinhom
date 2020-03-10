@@ -134,8 +134,8 @@ expectedCrossPairs <- function(rho1, rho2=NULL, hx, hy=NULL, method=c("mc", "lat
         nloop <- nloop + 1
 
 
-        #print(c(nh_active, min(weights), max(weights),
-        #            min(sd_est), max(sd_est)), digits=2)
+        print(c(nh_active, min(weights), max(weights),
+                    min(sd_est), max(sd_est)), digits=2)
     }
     # Final output. sampwts is the number of applicable monte carlo samples
     # winwts is the area of W \cap W_{-h}
@@ -309,7 +309,7 @@ expectedCrossPairs_iso <- function(rho1, rho2=NULL, r,
     epr
 }
 
-ep_kernel_nodiggle <- function(X,hx,hy,sigma,tol=.005,excess.only=FALSE) {
+ep_excess <- function(X,hx,hy,sigma,tol=.005, overcount=NULL) {
 
 #TODO: validate inputs. 
 CoV <- rep(Inf,length(hx))
@@ -352,32 +352,20 @@ while (any(CoV > tol)) {
     jterms <- outer(x, up, function(x, up) exp(-(up - x)^2/(2*sigma^2))) *
                 outer(y, vp, function(x, up) exp(-(up - x)^2/(2*sigma^2)))
 
-    if (!excess.only) {
-        newterms <- numeric(length(hx))
-        if (length(hx) == 1) {
-            for (i in 1:n) {
-
-                js <- (1:n) != i
-                newterms <- newterms + iterm[i]*sum(jterms[js,])
-            }
-        } else {
-            for (i in 1:n) {
-
-                js <- (1:n) != i
-                newterms <- newterms + iterm[i]*colSums(jterms[js,])
-            }
-        }
-    } else {
-        newterms <- colSums(iterm*jterms)
-    }
+    newterms <- colSums(iterm*jterms)
 
     result[theseh] <- result[theseh] + newterms * w
     result2[theseh] <- result2[theseh] + (newterms * w)^2
 
     num_samples[theseh] <- num_samples[theseh] + 1
 
-    sd_est <- ( sqrt( (num_samples[theseh]*result2[theseh] - result[theseh]^2) / (num_samples[theseh] - 1))
+    if (is.null(overcount)) {
+        sd_est <- ( sqrt( (num_samples[theseh]*result2[theseh] - result[theseh]^2) / (num_samples[theseh] - 1))
                         / result[theseh])
+    } else {
+        sd_est <- ( sqrt( (num_samples[theseh]*result2[theseh] - result[theseh]^2) / (num_samples[theseh] - 1))
+                        / (num_samples[theseh]*overcount[theseh]/fac/winwts[theseh] - result[theseh]))
+    }
 
     sd_est[num_samples[theseh] < 10] <- Inf
 

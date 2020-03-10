@@ -3,7 +3,7 @@
 pcfinhom <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     kernel="epanechnikov", bw=NULL, stoyan=0.15, normtol=.001, ratio=FALSE,
-    discrete.lambda=FALSE, divisor=c("r", "d"), analytical=NULL,
+    discrete.lambda=FALSE, divisor=c("r", "d"),
     leaveoneout=TRUE, interpolate=TRUE, interpolate.fac=10, exp_prs=NULL,
     interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
 
@@ -34,14 +34,12 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     }
     denargs <- list(kernel=kernel, bw=bw, n=length(r), from=0, to=rmax)
 
-    if (is.null(analytical)) {
-        analytical <- is.null(lambda) && is.null(exp_prs) # do the analytical method if no lambda is provided
-    }
+    lambda.given <- !is.null(lambda)
+    ep.given <- !is.null(exp_prs)
 
     if (interpolate) {
         dr <- min(sigma/ interpolate.fac, interpolate.maxdx)
-        if (dr < r[2])
-            interpolate=FALSE
+        if (dr < r[2]) interpolate=FALSE
     }
     if (interpolate) {
         r_test <- seq(0, rmax - r[2] + dr, by=dr)
@@ -49,18 +47,12 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
         r_test <- r
     }
 
-    if (analytical) {
-        Y <- if (leaveoneout) NULL else X
-        gammas <- expectedCrossPairs_iso_kernel(X, Y, r_test, sigma=sigma)
-    } else if (is.null(exp_prs)) {
-        ll <- fixLambda(lambda, X, discrete.lambda, sigma, ...)
-        gammas <- expectedPairs_iso(ll, r_test, tol=normtol)
+    if (ep.given) {
+        gammas <- exp_prs(r_test)
+    } else if (lambda.given) {
+        gammas <- expectedPairs_iso(lambda, r_test, tol=normtol)
     } else {
-        if (is.function(exp_prs)) {
-            gammas <- exp_prs(r_test)
-        } else {
-            stop("exp_prs is unknown format")
-        }
+        gammas <- expectedPairs_iso_withc(X, r_test, sigma=sigma, tol=normtol, leaveoneout=leaveoneout)
     }
 
     if (interpolate) {
