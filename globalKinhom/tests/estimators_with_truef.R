@@ -31,14 +31,14 @@ out <- data.frame(type=rep("poisson", nsim))
 out$X <- Xs
 out$Y <- Ys
 
-out$g.truef <- Map(pcfinhom, Xs, MoreArgs=list(lambda=lambda, exp_prs=ep_iso))
+out$g.truef <- Map(pcfglobal, Xs, MoreArgs=list(lambda=lambda, exp_prs=ep_iso))
 print("done with g.truef")
-out$c.truef <- Map(pcfcrossinhom, Xs, Ys,
+out$c.truef <- Map(pcfcross.global, Xs, Ys,
         MoreArgs=list(lambdaX=lambda, lambdaY=lambda, exp_prs=ep_iso))
 print("done with c.truef")
 out$K.truef <- Map(Kglobal, Xs, MoreArgs=list(lambda=lambda, exp_prs=ep))
 print("done with K.truef")
-out$Kcross.truef <- Map(Kcross.inhom, Xs, Ys,
+out$Kcross.truef <- Map(Kcross.global, Xs, Ys,
         MoreArgs=list(lambdaX=lambda, lambdaY=lambda, exp_prs=ep))
 print("done with Kcross.truef")
 
@@ -49,23 +49,15 @@ r <- out$g.truef[[1]]$r
 
 # These are ~1se above 1
 gg <- get.fv(out, "g.truef", "global")
-gl <- get.fv(out, "g.truef", "local")
 plot(r, colMeans(gg), type='l', ylim=c(.99, 1.01))
-lines(r, colMeans(gl), lty=2)
 lines(r, colMeans(gg) - apply(gg, 2, sd)/sqrt(nsim))
 lines(r, colMeans(gg) + apply(gg, 2, sd)/sqrt(nsim))
-lines(r, colMeans(gl) - apply(gl, 2, sd)/sqrt(nsim))
-lines(r, colMeans(gl) + apply(gl, 2, sd)/sqrt(nsim))
 lines(r, r/r, lty=3)
 
 cg <- get.fv(out, "c.truef", "global")
-cl <- get.fv(out, "c.truef", "local") 
 plot(r, colMeans(cg), type='l', ylim=c(.9, 1.1))
-lines(r, colMeans(cl), lty=2)
 lines(r, colMeans(cg) - apply(cg, 2, sd)/sqrt(nsim))
 lines(r, colMeans(cg) + apply(cg, 2, sd)/sqrt(nsim))
-lines(r, colMeans(cl) - apply(cl, 2, sd)/sqrt(nsim))
-lines(r, colMeans(cl) + apply(cl, 2, sd)/sqrt(nsim))
 lines(r, r/r, lty=3)
 
 #pi r^2 is well within the +/- sd of these

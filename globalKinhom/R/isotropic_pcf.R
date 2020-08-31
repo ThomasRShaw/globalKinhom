@@ -1,6 +1,6 @@
 # isotropic estimate for pcf. bw is the bandwidth for pcf estimation, _NOT_ for
 # intensity estimation. ... are passed to densityfun.ppp()
-pcfinhom <-
+pcfglobal <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     kernel="epanechnikov", bw=NULL, stoyan=0.15, normtol=.001, ratio=FALSE,
     discrete.lambda=FALSE, divisor=c("r", "d"),
@@ -82,26 +82,6 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
                         "Global intensity reweighted estimate of %s", "global")
     }
 
-    if (is.null(lambda)) {
-        lambdas <- density.ppp(X, at="points", ..., sigma=sigma, leaveoneout=leaveoneout)
-    } else {
-        lambdas <- lambda(X)
-    }
-    lambda2 <- lambdas[prs$i]*lambdas[prs$j]
-    edgewt <- edge.Trans(W=W, dx=X$x[prs$i] - X$x[prs$j], dy=X$y[prs$i]-X$y[prs$j],
-                            paired=TRUE)
-    wIJ <- edgewt/lambda2
-    kdenL <- sewpcf(prs$d, wIJ, denargs, areaW, divisor="r")
-    gL <- kdenL$g
-    if (!ratio) {
-        out <- bind.fv(out, data.frame(local=gL), "hat(%s)[local](r)",
-                        "Local intensity reweighted estimate of %s", "local")
-    } else {
-        out <- bind.ratfv(out, data.frame(local=gL * lambda2/edgewt), lambda2/edgewt,
-                        "hat(%s)[local](r)",
-                        "Local intensity reweighted estimate of %s", "local")
-    }
-
     formula(out) <- . ~ r
     fvnames(out, ".") <- setdiff(rev(colnames(out)), c("r", "v"))
     unitname(out) <- unitname(X)
@@ -111,14 +91,13 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
 
     if (dump) {
         attr(out, "prs") <- prs
-        attr(out, "wIJ") <- prs
         attr(out, "fs") <- gammas
     }
 
     out
 }
 
-pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
+pcfcross.global <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     sigma=bw.CvL(X), r=NULL, rmax=NULL, kernel="epanechnikov", bw=NULL,
     stoyan=0.15, normtol=.001, ratio=FALSE, discrete.lambda=FALSE,
     divisor=c("r", "d"), analytical=NULL, interpolate=TRUE,
@@ -188,8 +167,6 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
 
     if (interpolate) {
         gammas <- approx(r_test, gammas, r, rule=2)$y
-#         spl <- smooth.spline(r_test, gammas, df=length(r_test))
-#         gammas <- predict(spl, r)$y
     }
 
     prs <- crosspairs(X, Y, rmax + hmax, what='all')
@@ -214,32 +191,6 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
                 "global")
     }
 
-    # Do the local version
-    if (is.null(lambdaX)) {
-        lX <- density.ppp(X, at="points", ..., sigma=sigma, leaveoneout=leaveoneout)
-    } else {
-        lX <- lambdaX(X)
-    }
-    if (is.null(lambdaY)) {
-        lY <- density.ppp(Y, at="points", ..., sigma=sigma, leaveoneout=leaveoneout)
-    } else {
-        lY <- lambdaY(Y)
-    }
-    lambda2 <- lX[prs$i]*lY[prs$j]
-    edgewt <- edge.Trans(W=W, dx=prs$dx, dy=prs$dy, paired=TRUE)
-    wIJ <- edgewt/lambda2
-
-    kdenL <- sewpcf(prs$d, wIJ, denargs, areaW, divisor=divisor)
-    cL <- kdenL$g
-    if (!ratio) {
-        out <- bind.fv(out, data.frame(local=cL), "hat(%s)[local](r)",
-                "Local intensity reweighted estimate of %s", "local")
-    } else {
-        out <- bind.ratfv(out, data.frame(local=cL*lambda2/edgewt), lambda2/edgewt,
-                "hat(%s)[local](r)",
-                "Local intensity reweighted estimate of %s", "local")
-    }
-
     formula(out) <- . ~ r
     fvnames(out, ".") <- setdiff(rev(colnames(out)), c("r", "v"))
     unitname(out) <- unitname(X)
@@ -248,7 +199,6 @@ pcfcrossinhom <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
 
     attr(out, "bw") <- bw.used
     if (dump) {
-        attr(out, "wIJ") <- wIJ
         attr(out, "prs") <- prs
         attr(out, "fs") <- gammas
     }
