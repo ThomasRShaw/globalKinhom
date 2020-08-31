@@ -216,7 +216,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 
     K <- cumsum(K)
 
-    Kf <- data.frame(r=r, theo=pi*r^2, global=K, local=Kl)
+    Kf <- data.frame(r=r, theo=pi*r^2, global=K)
 
     out <- fv(Kf, argu="r", ylab=quote(K(r)), valu="global", fmla= . ~ r,
         alim=c(0,rmax), labl=c("r", "%s[Pois](r)", "%s[global](r)"),

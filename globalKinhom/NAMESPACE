@@ -1,7 +1,7 @@
 useDynLib(globalKinhom)
 import(spatstat)
 
-importFrom(stats, approx)
+importFrom(stats, approx, density, pnorm, runif, sd, var)
 importFrom(utils, head, tail)
 importFrom(grDevices, xy.coords)
 

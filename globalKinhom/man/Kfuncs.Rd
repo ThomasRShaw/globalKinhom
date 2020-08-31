@@ -1,15 +1,15 @@
 \name{Kglobal}
 \alias{Kglobal}
-\alias{Kglobalcross}
+\alias{Kcross.global}
 \title{ (cross) K functions with a global intensity reweighting }
 \description{
-Compute K_global from our paper
+Compute \eqn{K_\textrm{global}}{K[global]}
 }
 \usage{
 Kglobal(X, lambdaX=NULL, ... r=NULL, breaks=NULL, normtol=.001,
     discrete.lambda=FALSE, discrete.h=FALSE)
 
-Kglobalcross(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, breaks=NULL,
+Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, breaks=NULL,
     normtol=.001, discrete.lambda=FALSE, discrete.h=FALSE)
 
 }
