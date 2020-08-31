@@ -1,13 +1,11 @@
 require(globalKinhom)
 require(parallel)
 
-options(mc.cores=4)
-
 set.seed(49)
 
 type="poisson"
 prof="gausspeak"
-npoint=300
+npoint=100
 
 lambda <- funxy(function(x,y) 300*(.5*exp(-((x-.5)^2 + (y-.5)^2)*2) + .5), owin())
 
@@ -40,7 +38,7 @@ out$c.truef <- Map(pcfcrossinhom, Xs, Ys,
 print("done with c.truef")
 out$K.truef <- Map(Kglobal, Xs, MoreArgs=list(lambda=lambda, exp_prs=ep))
 print("done with K.truef")
-out$Kcross.truef <- Map(Kinhomcross, Xs, Ys,
+out$Kcross.truef <- Map(Kcross.inhom, Xs, Ys,
         MoreArgs=list(lambdaX=lambda, lambdaY=lambda, exp_prs=ep))
 print("done with Kcross.truef")
 
@@ -73,6 +71,3 @@ lines(r, r/r, lty=3)
 #pi r^2 is well within the +/- sd of these
 Kg <- get.fv(out, "K.truef", "global")
 Kcg <- get.fv(out, "Kcross.truef", "global")
-Kcl <- get.fv(out, "Kcross.truef", "local")
-
-
