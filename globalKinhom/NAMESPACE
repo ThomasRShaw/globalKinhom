@@ -1,4 +1,4 @@
-useDynLib(pcfinhom)
+useDynLib(globalKinhom)
 import(spatstat)
 
 importFrom(stats, approx)

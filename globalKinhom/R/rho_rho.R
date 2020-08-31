@@ -44,7 +44,7 @@ rhorho <- function(ux, uy, hx, hy, X, sigma, cutoff=4*sigma, sorted=c()) {
         rmaxi = as.double(cutoff),
         sig= as.double(sigma),
         result = as.double(double(length(ux)*length(hx))),
-        package = "pcfinhom")
+        package = "globalKinhom")
 
     res <- zz$result
     dim(res) <- c(length(hx), length(ux))
@@ -104,7 +104,7 @@ rhorho_best <- function(ux, uy, hx, hy, X, sigma, cutoff=8*sigma, sorted=c(),lea
             rmaxi = as.double(cutoff),
             sig= as.double(sigma),
             result = as.double(double(length(ux)*length(hx))),
-            package = "pcfinhom")
+            package = "globalKinhom")
 
         res <- zz$result
         dim(res) <- c(length(hx), length(ux))
