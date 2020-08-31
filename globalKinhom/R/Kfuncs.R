@@ -103,7 +103,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
 
 # If lambdaX and lambdaY are both NULL, use the analytical kernel
 # otherwise, use Monte Carlo estimates for f
-Kinhomcross <-
+Kcross.global <-
 function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
             rmax=NULL, breaks=NULL, normtol=.001, analytical=NULL,
             discrete.lambda=FALSE, interpolate=FALSE, isotropic=FALSE,
@@ -126,7 +126,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     r <- breaks$r
     rmax <- breaks$max
 
-    # How to compute f?
+    # How to compute gamma?
     # if both lambdaX and lambdaY are missing, use an analytical kernel-based
     # estimator
     lambdaX.given <- !is.null(lambdaX)
@@ -149,7 +149,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     hy <- pairs$dy #pairs$yi - pairs$yj
     pairdist <- pairs$d
 
-    # Get fs, depending on isotropic and interpolate options
+    # Get gammas, depending on isotropic and interpolate options
     if (isotropic) {
         rh <- sqrt(hx^2 + hy^2)
         if (interpolate) {
@@ -174,8 +174,6 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
         f <- fcheck
         if (interpolate) {
             f <- approx(rcheck, f, pairdist, rule=2)$y
-#             spl <- smooth.spline(rcheck, f, df=length(rcheck))
-#             f <- predict(spl, rh)$y
         }
     } else { # !isotropic
         if (interpolate) {
@@ -209,39 +207,25 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
         }
     }
 
-    if (!lambdaX.given) {
-        lambdaXs <- density.ppp(X, ..., sigma=sigma, at="points", leaveoneout=leaveoneout)
-    } else lambdaXs <- lambdaX(X$x, X$y)
-    if (!lambdaY.given) {
-        lambdaYs <- density.ppp(Y, ..., sigma=sigma, at="points", leaveoneout=leaveoneout)
-    } else lambdaYs <- lambdaY(Y$x, Y$y)
-    lambda2s <- lambdaXs[pairs$i]*lambdaYs[pairs$j]
-    edgewt <- edge.Trans(dx=hx, dy=hy, W=W, paired=TRUE)
-    wIJ <- edgewt/lambda2s
-
     bins <- .bincode(pairdist, r, include.lowest=TRUE)
     K <- numeric(length(r))
-    Kl <- numeric(length(r))
 
     for (i in 2:length(r)) {
         K[i] <- sum(1/f[bins == i - 1])
-        Kl[i] <- sum(wIJ[bins== i-1])
     }
 
     K <- cumsum(K)
-    Kl <- cumsum(Kl)
 
     Kf <- data.frame(r=r, theo=pi*r^2, global=K, local=Kl)
 
     out <- fv(Kf, argu="r", ylab=quote(K(r)), valu="global", fmla= . ~ r,
-        alim=c(0,rmax), labl=c("r", "%s[Pois](r)", "%s[global](r)", "%s[local](r)"),
+        alim=c(0,rmax), labl=c("r", "%s[Pois](r)", "%s[global](r)"),
         desc=c("distance argument r", "theoretical poison %s",
-        "global correction %s", "local correction %s"), fname="K")
+        "global correction %s"), fname="K")
 
     if (dump) {
         attr(out, "fs") <- f
         attr(out, "prs") <- pairs
-        attr(out, "wIJ") <- wIJ
     }
     out
 }
@@ -265,71 +249,68 @@ fixLambda <- function(lambdaX, X, discrete.lambda, sigma, ...) {
 }
 
 
-get.fs <- function(rh=NULL, hx=NULL, hy=NULL, interpolate, interpolate.fac,
-        interpolate.maxdx, leaveoneout, X=NULL, Y=NULL, lambdaX=NULL,
-        lambdaY=NULL, exp_prs, rmax) {
-    # Get fs, depending on isotropic and interpolate options
-    if (isotropic) {
-        rh <- sqrt(hx^2 + hy^2)
-        if (interpolate) {
-            dr <- min(sigma/interpolate.fac, interpolate.maxdx)
-            rcheck <- seq(0, max(rh) + dr, by=dr)
-        } else {
-            rcheck <- rh
-        }
-
-        if (analytical) {
-            Y <- if (leaveoneout) NULL else X
-            fcheck <- expectedCrossPairs_kernel_iso(X,Y, rcheck, sigma=sigma)
-        } else if (is.null(exp_prs)) {
-            fcheck <- expectedPairs_iso(lambda, rcheck, tol=normtol)
-        } else {
-            if (is.function(exp_prs)) {
-                fcheck <- exp_prs(rcheck)
-            } else {
-                stop("exp_pairs is unknown format")
-            }
-        }
-
-        f <- fcheck
-
-        if (interpolate) {
-            spl <- smooth.spline(rcheck, f, df=length(rcheck))
-            f <- predict(spl, rh)$y
-        }
-    } else { # !isotropic
-        if (interpolate) {
-            dhx <- min(sigma/interpolate.fac, interpolate.maxdx)
-            npt <- ceiling(rmax/dhx)
-            xs <- (-npt:npt)*dhx
-            lathx <- outer(xs, xs, function(x,y) x)
-            lathy <- outer(xs, xs, function(x,y) y)
-        } else {
-            lathx <- hx
-            lathy <- hy
-        }
-
-        if (analytical) {
-            Y <- if (leaveoneout) NULL else X
-            f <- expectedCrossPairs_kernel(X, Y, lathx, lathy, sigma)
-        } else if (is.null(exp_prs)) {
-            f <- expectedPairs(lambda, lathx, lathy, tol=normtol)
-        } else {
-            if (is.function(exp_prs)) {
-                f <- exp_prs(lathx, lathy)
-            }
-        }
-
-        if (interpolate) {
-            dim(f) <- c(2*npt + 1, 2*npt + 1)
-            latf.im <- as.im(t(f), xrow=xs, ycol=xs)
-
-            f <- interp.im(latf.im, hx, hy)
-        }
-    }
-
-    f
-}
-
-interp.fn.2d <- function(fn, x, y, dx) {
-    latx <- 1 }
+#get.fs <- function(rh=NULL, hx=NULL, hy=NULL, interpolate, interpolate.fac,
+#        interpolate.maxdx, leaveoneout, X=NULL, Y=NULL, lambdaX=NULL,
+#        lambdaY=NULL, exp_prs, rmax) {
+#    # Get fs, depending on isotropic and interpolate options
+#    if (isotropic) {
+#        rh <- sqrt(hx^2 + hy^2)
+#        if (interpolate) {
+#            dr <- min(sigma/interpolate.fac, interpolate.maxdx)
+#            rcheck <- seq(0, max(rh) + dr, by=dr)
+#        } else {
+#            rcheck <- rh
+#        }
+#
+#        if (analytical) {
+#            Y <- if (leaveoneout) NULL else X
+#            fcheck <- expectedCrossPairs_kernel_iso(X,Y, rcheck, sigma=sigma)
+#        } else if (is.null(exp_prs)) {
+#            fcheck <- expectedPairs_iso(lambda, rcheck, tol=normtol)
+#        } else {
+#            if (is.function(exp_prs)) {
+#                fcheck <- exp_prs(rcheck)
+#            } else {
+#                stop("exp_pairs is unknown format")
+#            }
+#        }
+#
+#        f <- fcheck
+#
+#        if (interpolate) {
+#            spl <- smooth.spline(rcheck, f, df=length(rcheck))
+#            f <- predict(spl, rh)$y
+#        }
+#    } else { # !isotropic
+#        if (interpolate) {
+#            dhx <- min(sigma/interpolate.fac, interpolate.maxdx)
+#            npt <- ceiling(rmax/dhx)
+#            xs <- (-npt:npt)*dhx
+#            lathx <- outer(xs, xs, function(x,y) x)
+#            lathy <- outer(xs, xs, function(x,y) y)
+#        } else {
+#            lathx <- hx
+#            lathy <- hy
+#        }
+#
+#        if (analytical) {
+#            Y <- if (leaveoneout) NULL else X
+#            f <- expectedCrossPairs_kernel(X, Y, lathx, lathy, sigma)
+#        } else if (is.null(exp_prs)) {
+#            f <- expectedPairs(lambda, lathx, lathy, tol=normtol)
+#        } else {
+#            if (is.function(exp_prs)) {
+#                f <- exp_prs(lathx, lathy)
+#            }
+#        }
+#
+#        if (interpolate) {
+#            dim(f) <- c(2*npt + 1, 2*npt + 1)
+#            latf.im <- as.im(t(f), xrow=xs, ycol=xs)
+#
+#            f <- interp.im(latf.im, hx, hy)
+#        }
+#    }
+#
+#    f
+#}
