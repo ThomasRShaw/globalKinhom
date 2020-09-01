@@ -3,11 +3,12 @@ Type: Package
 Title: Inhomogeneous $K$- and pair correlation functions using global estimators
 Version: 0.1.0
 Date: 2019-09-18
+Encoding: UTF-8
 Authors@R: c(person("Thomas", "Shaw", role=c("aut", "cre"), email="shawtr@umich.edu"))
 Author: Thomas Shaw [aut, cre]
 Maintainer: Thomas Shaw <shawtr@umich.edu>
 Depends: R (>= 3.5.0), spatstat
 Description: This package provides computations to estimate the statistics developed
-    in Shaw, M\oller, Waagepetersen. ``Globally Intensity-Reweighted Estimators for
-    $K$- and pair correlation functions''. arXiv:2004.00527 [stat.ME].
+    in T Shaw, J Møller, R Waagepetersen. 2020. \dQuote{Globally Intensity-Reweighted Estimators for
+    \eqn{K}- and pair correlation functions}. arXiv:2004.00527 [stat.ME].
 License: GPL (>= 2)

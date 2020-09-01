@@ -6,47 +6,89 @@
 Compute \eqn{K_\textrm{global}}{K[global]}
 }
 \usage{
-Kglobal(X, lambdaX=NULL, ... r=NULL, breaks=NULL, normtol=.001,
-    discrete.lambda=FALSE, discrete.h=FALSE)
+Kglobal(X, lambda=NULL, \dots, sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
+            normtol=.001, discrete.lambda=FALSE,
+            interpolate=FALSE, interpolate.fac=10, isotropic=FALSE,
+            leaveoneout=TRUE, exp_prs=NULL,
+            interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE)
 
-Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., r=NULL, breaks=NULL,
-    normtol=.001, discrete.lambda=FALSE, discrete.h=FALSE)
-
+Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, \dots, sigma=bw.CvL(X), r=NULL,
+            rmax=NULL, breaks=NULL, normtol=.001, analytical=NULL,
+            discrete.lambda=FALSE, interpolate=FALSE, isotropic=FALSE,
+            interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL,
+            interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE)
 }
 \arguments{
   \item{X, Y}{
-    point process of type ppp, on which to evaluate the (cross) K function
+    point process of type \code{\link{ppp}}, on which to evaluate the (cross) \eqn{K}-function
 }
-  \item{lambdaX, lambdaY}{
-    intensity function estimates corresponding to X and Y. If omitted, intensity
-    functions will be computed using density.ppp or densityfun.ppp (see discrete.lambda
-    below)
+  \item{lambda, lambdaX, lambdaY}{
+    intensity function estimates corresponding to \code{X} and \code{Y}. If omitted, intensity
+    functions will be computed using \code{\link{density.ppp}} or \code{\link{densityfun.ppp}}
+    (see discrete.lambda below)
 }
-  \item{...}{
+  \item{\dots}{
     extra args passed to density.ppp or densityfun.ppp, if applicable.
 }
+  \item{sigma}{
+    Bandwidth value to use for kernel-based intensity estimation, intensity functions and
+    \code{exp_prs} are not provided by the user.
+}
   \item{r}{
-    values of r to evaluate K(r) at. If omitted, a sensible default is chosen.
+    Values of \eqn{r} to evaluate \eqn{K(r)} at. If omitted, a sensible default is chosen, using the same
+    conventions as \code{\link{Kest}} and \code{\link{Kinhom}}.
+}
+  \item{rmax}{
+    Maximum \eqn{r} to evaluate \eqn{K(r)} at. \code{rmax} is used to generate values for \code{r},
+    if omitted. If missing, a sensible default is chosen.
 }
   \item{breaks}{
-    For internal use only
+    For internal use only.
 }
   \item{normtol}{
-    A tolerance to use for expectedPairs or expectedCrossPairs when computing
-    the normalizing factor.
+    A tolerance to use for expectedPairs or expectedCrossPairs when computing monte-carlo
+    estimates of the normalizing factor \eqn{\gamma}{gamma}. Expressed as a maximum fractional
+    standard error.
+}
+  \item{analytical}{
+    If \code{TRUE}, use Diggle-Jones weights %TODO: cite and comment about this.
 }
   \item{discrete.lambda}{
-    if TRUE, and lambdaX or lambdaY are not supplied, evaluate lambda by
-    interpolating the values on a discrete lattice (using interp.im and
-    density.ppp), instead of exactly (using densityfun.ppp)
+    If \code{TRUE}, and intensity function(s) are not supplied, estimate intensities by
+    interpolating the values on a discrete lattice (using \code{\link{interp.im}} and
+    \code{\link{density.ppp}}), instead of exactly (using \code{\link{densityfun.ppp}}).
 }
-  \item{discrete.h}{
-    if TRUE, evaluate the expectedCrossPairs on a lattice and interpolate,
-    rather than at the exact displacements observed in the pattern
+  \item{interpolate}{
+    If \code{TRUE}, evaluate the expectedCrossPairs on a lattice and interpolate,
+    rather than at the exact displacements observed in the pattern.
+}
+  \item{interpolate.fac}{
+    If \code{interpolate}, the lattice spacing will be \code{sigma/interpolate.fac}.
+}
+  \item{isotropic}{
+    Set to \code{TRUE} to use the isotropic estimators \eqn{\gamma_\textrm{iso}}{gamma[iso]}.
+}
+  \item{leaveoneout}{
+    Use the leave-one-out estimator for \eqn{\gamma}{gamma}. See Shaw et al 2020 for details.
+}
+  \item{exp_prs}{
+    A function that returns values for
+    \eqn{\gamma_\textrm{iso}(r)}{gamma[iso](r)}. If \eqn{\gamma}{gamma} is
+    known explicitly, or the same calculation is being used for several
+    point patterns, it can be much faster to compute it once and provide the function
+    as \code{exp_prs}, since the computation of \eqn{\gamma}{gamma} is usually the
+    slowest part.
+}
+  \item{interpolate.maxdx}{
+    Upper bound on allowable lattice spacing for interpolation.
+}
+  \item{dump}{
+    For debugging purposes, include computed values of \eqn{\gamma}{gamma} with the output,
+    as \code{attr}s.
 }
 }
 \value{
-    The return value is a numeric vector corresponding to K(r)
+    The return value is of class \code{fv}, like corresponding \link{spatstat} functions.
 }
 \references{
 }

@@ -21,7 +21,7 @@ edge.Iso <- function(X,Y=X,win=Window(X), paired=FALSE, dx=NULL, dy=NULL, d=NULL
                     (2*pi - 4*d*(1/width + 1/height) + 2*d^2/(width*height)) * width*height/(2*pi)
         })
 
-    if (is.null(w)) error("edge.Iso: unknown window type")
+    if (is.null(w)) stop("edge.Iso: unknown window type")
 
     w
 }

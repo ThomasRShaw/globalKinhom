@@ -12,7 +12,7 @@ f_{12} of our paper.
 }
 \usage{
 expectedPairs(rho, hx, hy=NULL, method=c("mc", "lattice"),
-                tol=.005, dx=diff(as.owin(rho1)$xrange)/200, maxeval=1e6,
+                tol=.005, dx=diff(as.owin(rho)$xrange)/200, maxeval=1e6,
                 maxsamp=5e3)
 
 expectedCrossPairs(rho1, rho2=NULL, hx, hy=NULL, method=c("mc", "lattice"),

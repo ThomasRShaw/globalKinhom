@@ -5,7 +5,7 @@
 
 # expectedPairs is just a wrapper for expectedCrossPairs that takes the right args
 expectedPairs <- function(rho, hx, hy=NULL, method=c("mc", "lattice"), tol=.005,
-                            dx=diff(as.owin(rho1)$xrange)/200, maxeval=1e6,
+                            dx=diff(as.owin(rho)$xrange)/200, maxeval=1e6,
                             maxsamp=5e3) {
     expectedCrossPairs(rho1=rho, rho2=NULL, hx, hy, method, tol, dx,
                         maxsamp=maxsamp, maxeval=maxeval)
@@ -77,7 +77,7 @@ expectedCrossPairs <- function(rho1, rho2=NULL, hx, hy=NULL, method=c("mc", "lat
     nloop <- 0
     inds <- valid_h # hs that haven't converged
     nh_active <- length(valid_h)
-    if (nh_active == 0) return(eps) # none of the hs are valid
+    if (nh_active == 0) return(epr) # none of the hs are valid
 
     # Main loop
     while (nh_active > 0) {
