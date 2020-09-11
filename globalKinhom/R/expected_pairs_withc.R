@@ -1,5 +1,5 @@
 # This one has leave-one-out option
-expectedPairs_withc <- function(X, hx,hy, sigma=bw.CvL,
+expectedPairs_kernloo <- function(X, hx,hy, sigma=bw.CvL,
                     tol=.005, maxeval=1e6, maxsamp=5e3, leaveoneout=TRUE) {
     
     # Validate arguments
@@ -69,7 +69,7 @@ expectedPairs_withc <- function(X, hx,hy, sigma=bw.CvL,
         u <- sort(runif(n_U,0,1-minhx))
         v <- runif(n_U)
 
-        f_at_u <- rhorho_best(u,v, hx,hy, X, sigma, cutoff, sorted=c("u","h","x"), leaveoneout=TRUE)
+        f_at_u <- rhorho(u,v, hx,hy, X, sigma, cutoff, sorted=c("u","h","x"), leaveoneout=TRUE)
 
         weights <- weights + f_at_u$samps
 
@@ -92,7 +92,7 @@ expectedPairs_withc <- function(X, hx,hy, sigma=bw.CvL,
     ep[horder] <- ep
 }
 
-expectedPairs_iso_withc <- function(X, r, sigma=bw.CvL, tol=.001, maxeval=1e6,
+expectedPairs_iso_kernloo <- function(X, r, sigma=bw.CvL, tol=.001, maxeval=1e6,
                                     maxsamp=5e3, leaveoneout=TRUE) {
 
     # Validate arguments
@@ -160,7 +160,7 @@ expectedPairs_iso_withc <- function(X, r, sigma=bw.CvL, tol=.001, maxeval=1e6,
             hx <- hx/rh
             hy <- hy/rh
 
-            f_at_u <- rhorho_best(u,v,hx*r,hy*r, X, sigma=sigma, cutoff=cutoff, leaveoneout=leaveoneout)
+            f_at_u <- rhorho(u,v,hx*r,hy*r, X, sigma=sigma, cutoff=cutoff, leaveoneout=leaveoneout)
 
             weights <- weights + f_at_u$samps
 

@@ -2,7 +2,7 @@
 # intensity estimation. ... are passed to densityfun.ppp()
 pcfglobal <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
-    kernel="epanechnikov", bw=NULL, stoyan=0.15, normtol=.001, ratio=FALSE,
+    kernel="epanechnikov", bw=NULL, stoyan=0.15, normtol=.005, ratio=FALSE,
     discrete.lambda=FALSE, divisor=c("r", "d"),
     leaveoneout=TRUE, interpolate=TRUE, interpolate.fac=10, exp_prs=NULL,
     interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
@@ -52,7 +52,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     } else if (lambda.given) {
         gammas <- expectedPairs_iso(lambda, r_test, tol=normtol)
     } else {
-        gammas <- expectedPairs_iso_withc(X, r_test, sigma=sigma, tol=normtol, leaveoneout=leaveoneout)
+        gammas <- expectedPairs_iso_kernloo(X, r_test, sigma=sigma, tol=normtol, leaveoneout=leaveoneout)
     }
 
     if (interpolate) {
@@ -99,9 +99,9 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
 
 pcfcross.global <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     sigma=bw.CvL(X), r=NULL, rmax=NULL, kernel="epanechnikov", bw=NULL,
-    stoyan=0.15, normtol=.001, ratio=FALSE, discrete.lambda=FALSE,
+    stoyan=0.15, normtol=.005, ratio=FALSE, discrete.lambda=FALSE,
     divisor=c("r", "d"), analytical=NULL, interpolate=TRUE,
-    interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL,
+    interpolate.fac=10, exp_prs=NULL,
     interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
 
     verifyclass(X, "ppp")
@@ -135,9 +135,7 @@ pcfcross.global <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     }
     denargs <- list(kernel=kernel, bw=bw, n=length(r), from=0, to=rmax)
 
-    if (is.null(analytical)) {
-        analytical <- is.null(lambdaX) && is.null(lambdaY) && is.null(exp_prs)
-    }
+    ep.given <- !is.null(exp_prs)
 
     if (interpolate) {
         dr <- min(sigma/ interpolate.fac, interpolate.maxdx)
@@ -150,19 +148,17 @@ pcfcross.global <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
         r_test <- r
     }
 
-    if (analytical) {
-        gammas <- expectedCrossPairs_iso_kernel(X,Y, r_test, sigma=sigma)
-    } else if (is.null(exp_prs)){
-        lX <- fixLambda(lambdaX, X, discrete.lambda, sigma, ...)
-        lY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, ...)
-
-        gammas <- expectedCrossPairs_iso(lX, lY, r_test, tol=normtol)
-    } else {
+    if (ep.given){
         if (is.function(exp_prs)) {
             gammas <- exp_prs(r_test)
         } else {
             stop("exp_prs given in unknown form")
         }
+    } else {
+        lX <- fixLambda(lambdaX, X, discrete.lambda, sigma, ...)
+        lY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, ...)
+
+        gammas <- expectedCrossPairs_iso(lX, lY, r_test, tol=normtol)
     }
 
     if (interpolate) {

@@ -2,11 +2,11 @@
 # K_global from the paper
 # argument list is based on spatstat Kinhom, though many of those arguments
 # are not relevant here. ... are passed to density.ppp or densityfun.ppp
-# if no lambda, use an analytical kernel version of expectedCrossPairs
+# if no lambda, use a kernel version of expectedCrossPairs
 Kglobal <-
 function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
-            normtol=.001, discrete.lambda=FALSE,
-            interpolate=FALSE, interpolate.fac=10, isotropic=FALSE,
+            normtol=.005, discrete.lambda=FALSE,
+            interpolate=TRUE, interpolate.fac=10, isotropic=TRUE,
             leaveoneout=TRUE, exp_prs=NULL,
             interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
     # Check inputs
@@ -30,7 +30,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
     hy <- pairs$dy #pairs$yi - pairs$yj
     pairdist <- pairs$d
 
-    # Get fs, depending on isotropic and interpolate options
+    # Get gammas, depending on isotropic and interpolate options
     if (isotropic) {
         if (interpolate) {
             dr <- min(sigma/interpolate.fac, interpolate.maxdx)
@@ -40,16 +40,15 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
         }
 
         if (ep.given) {
-            fcheck <- exp_prs(rcheck)
+            gamma <- exp_prs(rcheck)
         } else if (lambda.given) {
-            fcheck <- expectedPairs_iso(lambda,rcheck, tol=normtol)
+            gamma <- expectedPairs_iso(lambda,rcheck, tol=normtol)
         } else {
-            fcheck <- expectedPairs_iso_withc(X,rcheck,sigma=sigma,tol=normtol,leaveoneout=leaveoneout)
+            gamma <- expectedPairs_iso_kernloo(X,rcheck,sigma=sigma,tol=normtol,leaveoneout=leaveoneout)
         }
 
-        f <- fcheck
         if (interpolate) {
-            f <- approx(rcheck, f, pairdist, rule=2)$y
+            gamma <- approx(rcheck, gamma, pairdist, rule=2)$y
         }
     } else { # !isotropic
         if (interpolate) {
@@ -64,18 +63,18 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
         }
 
         if (ep.given) {
-            f <- exp_prs(lathx, lathy)
+            gamma <- exp_prs(lathx, lathy)
         } else if (lambda.given) {
-            f <- expectedPairs_iso(lambda,lathx,lathy,tol=normtol)
+            gamma <- expectedPairs_iso(lambda,lathx,lathy,tol=normtol)
         } else {
-            f <- expectedPairs_withc(X,lathx,lathy,sigma=sigma,tol=normtol,leaveoneout=leaveoneout)
+            gamma <- expectedPairs_kernloo(X,lathx,lathy,sigma=sigma,tol=normtol,leaveoneout=leaveoneout)
         }
 
         if (interpolate) {
-            dim(f) <- c(2*npt + 1, 2*npt + 1)
-            latf.im <- as.im(t(f), xrow=xs, ycol=xs)
+            dim(gamma) <- c(2*npt + 1, 2*npt + 1)
+            latgamma.im <- as.im(t(gamma), xrow=xs, ycol=xs)
 
-            f <- interp.im(latf.im, hx, hy)
+            gamma <- interp.im(latgamma.im, hx, hy)
         }
     }
 
@@ -83,7 +82,7 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
     K <- numeric(length(r))
 
     for (i in 2:length(r)) {
-        K[i] <- sum(1/f[bins == i - 1])
+        K[i] <- sum(1/gamma[bins == i - 1])
     }
     K <- cumsum(K)*2 # make up for twice=FALSE above
     Kf <- data.frame(r=r, theo=pi*r^2, global=K)
@@ -94,19 +93,19 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
         "global correction %s"), fname="K")
 
     if (dump) {
-        attr(out, "fs") <- f
+        attr(out, "gammas") <- gamma
         attr(out, "prs") <- pairs
     }
 
     out
 }
 
-# If lambdaX and lambdaY are both NULL, use the analytical kernel
+# If lambdaX and lambdaY are both NULL, use the kernel version
 # otherwise, use Monte Carlo estimates for f
 Kcross.global <-
 function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
-            rmax=NULL, breaks=NULL, normtol=.001, analytical=NULL,
-            discrete.lambda=FALSE, interpolate=FALSE, isotropic=FALSE,
+            rmax=NULL, breaks=NULL, normtol=.005,
+            discrete.lambda=FALSE, interpolate=TRUE, isotropic=TRUE,
             interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL,
             interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE) {
     # Check inputs
@@ -127,21 +126,15 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     rmax <- breaks$max
 
     # How to compute gamma?
-    # if both lambdaX and lambdaY are missing, use an analytical kernel-based
-    # estimator
-    lambdaX.given <- !is.null(lambdaX)
-    lambdaY.given <- !is.null(lambdaY)
-    if (is.null(analytical)) {
-        analytical <- is.null(lambdaX) && is.null(lambdaY) && is.null(exp_prs)
-    }
+    ep.given <- !is.null(exp_prs)
 
-    if (!analytical && is.null(exp_prs)) {
+    if (!ep.given) {
         if (!is.null(sig_tmp <- attr(lambdaX, "sigma"))) {
             sigma <- sig_tmp
         }
 
-        lambdaX <- fixLambda(lambdaX, X, discrete.lambda, sigma, leaveoneout=leaveoneout, ...)
-        lambdaY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, leaveoneout=leaveoneout, ...)
+        lambdaX <- fixLambda(lambdaX, X, discrete.lambda, sigma, ...)
+        lambdaY <- fixLambda(lambdaY, Y, discrete.lambda, sigma, ...)
     }
 
     pairs <- crosspairs(X, Y, rmax)
@@ -159,21 +152,18 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
             rcheck <- rh
         }
 
-        if (analytical) {
-                fcheck <- expectedCrossPairs_iso_kernel(X,Y,rcheck, sigma=sigma)
-        } else if(is.null(exp_prs)) {
-                fcheck <- expectedCrossPairs_iso(lambdaX, lambdaY, rcheck, tol=normtol)
-        } else {
+        if(ep.given) {
             if (is.function(exp_prs)) {
-                fcheck <- exp_prs(rcheck)
+                gamma <- exp_prs(rcheck)
             } else {
                 stop("exp_prs is unknown format")
             }
+        } else {
+            gamma <- expectedCrossPairs_iso(lambdaX, lambdaY, rcheck, tol=normtol)
         }
 
-        f <- fcheck
         if (interpolate) {
-            f <- approx(rcheck, f, pairdist, rule=2)$y
+            gamma <- approx(rcheck, gamma, pairdist, rule=2)$y
         }
     } else { # !isotropic
         if (interpolate) {
@@ -187,23 +177,21 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
             lathy <- hy
         }
 
-        if (analytical) {
-            f <- expectedCrossPairs_kernel(X, Y, lathx, lathy, sigma)
-        } else if (is.null(exp_prs)) {
-            f <- expectedCrossPairs(lambdaX, lambdaY, lathx, lathy, tol=normtol)
-        } else {
+        if (ep.given) {
             if (is.function(exp_prs)) {
-                f <- exp_prs(lathx, lathy)
+                gamma <- exp_prs(lathx, lathy)
             } else {
                 stop("exp_prs is unknown format")
             }
+        } else {
+            gamma <- expectedCrossPairs(lambdaX, lambdaY, lathx, lathy, tol=normtol)
         }
 
         if (interpolate) {
-            dim(f) <- c(2*npt + 1, 2*npt + 1)
-            latf.im <- as.im(t(f), xcol=xs, yrow=xs)
+            dim(gamma) <- c(2*npt + 1, 2*npt + 1)
+            latgamma.im <- as.im(t(gamma), xcol=xs, yrow=xs)
 
-            f <- interp.im(latf.im, hx, hy)
+            gamma <- interp.im(latgamma.im, hx, hy)
         }
     }
 
@@ -211,7 +199,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     K <- numeric(length(r))
 
     for (i in 2:length(r)) {
-        K[i] <- sum(1/f[bins == i - 1])
+        K[i] <- sum(1/gamma[bins == i - 1])
     }
 
     K <- cumsum(K)
@@ -224,7 +212,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
         "global correction %s"), fname="K")
 
     if (dump) {
-        attr(out, "fs") <- f
+        attr(out, "gammas") <- gamma
         attr(out, "prs") <- pairs
     }
     out

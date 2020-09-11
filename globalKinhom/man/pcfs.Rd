@@ -1,22 +1,24 @@
-\name{Kglobal}
-\alias{Kglobal}
-\alias{Kcross.global}
-\title{ (cross) K functions with a global intensity reweighting }
+\name{pcfglobal}
+\alias{pcfglobal}
+\alias{pcfcross.global}
+\title{ (cross) pair correlation functions with a global intensity reweighting }
 \description{
-Compute \eqn{K_\textrm{global}}{K[global]}
+Compute \eqn{g_\textrm{global}}{g[global]} or \eqn{c_\textrm{global}}{c[global]}
 }
 \usage{
-Kglobal(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL, breaks=NULL,
-            normtol=.005, discrete.lambda=FALSE,
-            interpolate=TRUE, interpolate.fac=10, isotropic=TRUE,
-            leaveoneout=TRUE, exp_prs=NULL,
-            interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE)
+pcfglobal(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
+    kernel="epanechnikov", bw=NULL, stoyan=0.15, normtol=.005, ratio=FALSE,
+    discrete.lambda=FALSE, divisor=c("r", "d"),
+    leaveoneout=TRUE, interpolate=TRUE, interpolate.fac=10, exp_prs=NULL,
+    interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE)
 
-Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
-            rmax=NULL, breaks=NULL, normtol=.005,
-            discrete.lambda=FALSE, interpolate=TRUE, isotropic=TRUE,
-            interpolate.fac=10, leaveoneout=TRUE, exp_prs=NULL,
-            interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE)
+pcfcross.global(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
+    sigma=bw.CvL(X), r=NULL, rmax=NULL, kernel="epanechnikov", bw=NULL,
+    stoyan=0.15, normtol=.005, ratio=FALSE, discrete.lambda=FALSE,
+    divisor=c("r", "d"), analytical=NULL, interpolate=TRUE,
+    interpolate.fac=10, exp_prs=NULL,
+    interpolate.maxdx=diameter(as.owin(X))/100, dump=FALSE)
+
 }
 \arguments{
   \item{X, Y}{
@@ -42,13 +44,29 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     Maximum \eqn{r} to evaluate \eqn{K(r)} at. \code{rmax} is used to generate values for \code{r},
     if omitted. If missing, a sensible default is chosen.
 }
-  \item{breaks}{
-    For internal use only.
+  \item{kernel}{
+    Kernel type for smoothing of pcf.
+}
+  \item{bw}{
+    Kernel bandwidth for smoothing of pcf.
+}
+  \item{stoyan}{
+    Coefficient for Stoyan's bandwidth selection rule. See \code{\link{pcf.ppp}}.
 }
   \item{normtol}{
     A tolerance to use for expectedPairs or expectedCrossPairs when computing monte-carlo
     estimates of the normalizing factor \eqn{\gamma}{gamma}. Expressed as a maximum fractional
     standard error.
+}
+  \item{ratio}{
+    If \code{TRUE}, assemble numerator and denominator of pcf estimator separately.
+}
+  \item{divisor}{
+    Whether to use the evaluation distance (\code{"r"}) or the distance between points (\code{"d"})
+    to normalize the contribution of each point pair.
+}
+  \item{analytical}{
+    If \code{TRUE}, use Diggle-Jones weights %TODO: cite and comment about this.
 }
   \item{discrete.lambda}{
     If \code{TRUE}, and intensity function(s) are not supplied, estimate intensities by
@@ -61,9 +79,6 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 }
   \item{interpolate.fac}{
     If \code{interpolate}, the lattice spacing will be \code{sigma/interpolate.fac}.
-}
-  \item{isotropic}{
-    Set to \code{TRUE} to use the isotropic estimators \eqn{\gamma_\textrm{iso}}{gamma[iso]}.
 }
   \item{leaveoneout}{
     Use the leave-one-out estimator for \eqn{\gamma}{gamma}. See Shaw et al 2020 for details.
@@ -85,7 +100,7 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 }
 }
 \value{
-    The return value is of class \code{fv}, like corresponding \link{spatstat} functions.
+    The return value is a numeric vector corresponding to K(r)
 }
 \references{
 }
@@ -98,5 +113,5 @@ Thomas Shaw <shawtr@umich.edu>
 \examples{
 rho <- funxy(function(x,y) 100*(1+x), owin())
 X <- rpoispp(rho)
-K <- Kglobal(X, normtol=.006)
+g <- pcfglobal(X, normtol=.006)
 }
