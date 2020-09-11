@@ -1,3 +1,11 @@
+/* This file contains modified code from the spatstat package,
+which is distributed as free software under the GNU Public Licence >=2,
+and Copyright (C) Adrian Baddeley, Ege Rubak and Rolf Turner 2001-2018
+
+The modified code is distributed under the same licence:
+Copyright (C) Thomas Shaw
+Licence: GNU Public Licence >= 2 */
+
 #include <Rmath.h>
 #include <R_ext/Utils.h>
 
