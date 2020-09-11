@@ -40,7 +40,5 @@ Maintainer: \packageMaintainer{globalKinhom}
     Interaction in Inhomogeneous Point Patterns}. Statistica Neerlandica 54, 329-350.
 }
 \keyword{ package }
-\seealso{ \link{spatstat}
-}
-\examples{
+\seealso{ \link{spatstat}, \code{\link{Kglobal}}, \code{link{pcfglobal}}
 }

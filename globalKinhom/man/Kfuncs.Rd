@@ -35,8 +35,9 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     \code{exp_prs} are not provided by the user.
 }
   \item{r}{
-    Values of \eqn{r} to evaluate \eqn{K(r)} at. If omitted, a sensible default is chosen, using the same
-    conventions as \code{\link{Kest}} and \code{\link{Kinhom}}.
+    Values of \eqn{r} to evaluate \eqn{K(r)} at. If omitted, a sensible default
+    is chosen, using the same conventions as \code{\link{Kest}} and
+    \code{\link{Kinhom}}.
 }
   \item{rmax}{
     Maximum \eqn{r} to evaluate \eqn{K(r)} at. \code{rmax} is used to generate values for \code{r},
@@ -66,7 +67,7 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     Set to \code{TRUE} to use the isotropic estimators \eqn{\gamma_\textrm{iso}}{gamma[iso]}.
 }
   \item{leaveoneout}{
-    Use the leave-one-out estimator for \eqn{\gamma}{gamma}. See Shaw et al 2020 for details.
+    Use the leave-one-out estimator for \eqn{\gamma}{gamma}. See Shaw et al, 2020 for details.
 }
   \item{exp_prs}{
     A function that returns values for
@@ -85,9 +86,14 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 }
 }
 \value{
-    The return value is of class \code{fv}, like corresponding \link{spatstat} functions.
+    The return value is an object of class \code{\link{fv}}, just as for \code{\link{Kest}}
+    and \code{\link{Kinhom}}. The object contains columns \code{r}, \code{theo}, and
+    \code{global}, corresponding respectively to the argument \eqn{r}, the theoretical
+    values of \eqn{K(r)} for a Poisson process, and \eqn{K_\mathrm{global}(r)}{K[global](r)}.
 }
 \references{
+    T Shaw, J Møller, R Waagepetersen. 2020. \dQuote{Globally Intensity-Reweighted Estimators for
+    \eqn{K}- and pair correlation functions}. arXiv:2004.00527 [stat.ME].
 }
 \author{
 Thomas Shaw <shawtr@umich.edu>
@@ -98,5 +104,6 @@ Thomas Shaw <shawtr@umich.edu>
 \examples{
 rho <- funxy(function(x,y) 100*(1+x), owin())
 X <- rpoispp(rho)
-K <- Kglobal(X, normtol=.006)
+K <- Kglobal(X)
+plot(K)
 }

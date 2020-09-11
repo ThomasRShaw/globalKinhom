@@ -100,9 +100,14 @@ pcfcross.global(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
 }
 }
 \value{
-    The return value is a numeric vector corresponding to K(r)
+    The return value is an object of class \code{\link{fv}}, just as for \code{\link{pcf}}
+    and \code{\link{pcfinhom}}. The object contains columns \code{r}, \code{theo}, and
+    \code{global}, corresponding respectively to the argument \eqn{r}, the theoretical
+    values of \eqn{g(r)} for a Poisson process, and \eqn{g_\mathrm{global}(r)}{g[global](r)}.
 }
 \references{
+    T Shaw, J Møller, R Waagepetersen. 2020. \dQuote{Globally Intensity-Reweighted Estimators for
+    \eqn{K}- and pair correlation functions}. arXiv:2004.00527 [stat.ME].
 }
 \author{
 Thomas Shaw <shawtr@umich.edu>
@@ -113,5 +118,6 @@ Thomas Shaw <shawtr@umich.edu>
 \examples{
 rho <- funxy(function(x,y) 100*(1+x), owin())
 X <- rpoispp(rho)
-g <- pcfglobal(X, normtol=.006)
+g <- pcfglobal(X)
+plot(g)
 }
