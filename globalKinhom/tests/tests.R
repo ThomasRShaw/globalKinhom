@@ -1,5 +1,4 @@
 require(globalKinhom)
-require(parallel)
 
 set.seed(49)
 
@@ -20,15 +19,11 @@ K <- Kglobal(X, isotropic=TRUE, interpolate=TRUE)
 Kcross <- Kcross.global(X, Y, isotropic=TRUE, interpolate=TRUE)
 print("done with estimates using estimated gamma")
 
-print("g")
 print(g.truef$global)
 print(g$global)
-print("c")
 print(c.truef$global)
 print(c$global)
-print("K")
 print(K.truef$global)
 print(K$global)
-print("Kcross")
 print(Kcross.truef$global)
 print(Kcross$global)
