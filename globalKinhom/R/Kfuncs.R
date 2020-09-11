@@ -113,7 +113,7 @@ function(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
     verifyclass(Y, "ppp")
     W <- as.owin(X)
     W2 <- as.owin(Y)
-    stopifnot(W$xrange == W2$xrange && W$yrange == W2$yrange)
+    stopifnot(all(W$xrange == W2$xrange) && all(W$yrange == W2$yrange))
 
     npts <- npoints(X)
     AreaW <- area(W)
@@ -230,7 +230,7 @@ fixLambda <- function(lambdaX, X, discrete.lambda, sigma, ...) {
         }
     } else {
         Wl <- as.owin(lambdaX)
-        stopifnot(Wl$xrange == W$xrange && Wl$yrange == W$yrange)
+        stopifnot(all(Wl$xrange == W$xrange) && all(Wl$yrange == W$yrange))
     }
 
     lambdaX

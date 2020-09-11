@@ -47,7 +47,7 @@ expectedCrossPairs <- function(rho1, rho2=NULL, hx, hy=NULL, method=c("mc", "lat
     W <- as.owin(rho1)
     if (cross) {
         W2 <- as.owin(rho2)
-        stopifnot(W$xrange == W2$xrange && W$yrange == W2$yrange)
+        stopifnot(all(W$xrange == W2$xrange) && all(W$yrange == W2$yrange))
     }
 
     # Get coordinates of h
@@ -143,63 +143,6 @@ expectedCrossPairs <- function(rho1, rho2=NULL, hx, hy=NULL, method=c("mc", "lat
     epr
 }
 
-cross_f_lattice <- function(rho1, rho2, hx, hy=NULL, dx=.01, ...) {
-
-    # Get coordinates of h
-    xy <- xy.coords(hx, hy)
-    hx <- xy$x
-    hy <- xy$y
-
-    val <- numeric(length(hx))
-
-    # get number of points on an appropriate lattice
-    stopifnot(is.im(rho2))
-    W <- as.owin(rho1)
-    W2 <- as.owin(rho2)
-    stopifnot(W$xrange == W2$xrange && W$yrange == W2$yrange)
-
-    xrange <- W$xrange
-    yrange <- W$yrange
-    nx <- ceiling(diff(xrange)/dx)
-    ny <- ceiling(diff(yrange)/dx)
-    dx <- diff(xrange)/nx
-    dy <- diff(yrange)/ny
-
-    #compute points of lattice
-    xs <- seq(xrange[1] + dx/2, xrange[2], by=dx);
-    ys <- seq(yrange[1] + dy/2, yrange[2], by=dy);
-
-    latticex <- as.vector(outer(xs, ys, function(x,y) x))
-    latticey <- as.vector(outer(xs, ys, function(x,y) y))
-
-    # and associated rho
-    latticez <- interp.im(rho1, latticex, latticey)
-
-    # figure out how many hs per call to rho2:
-    ncall <- min(ceiling(length(latticez)* length(hx) / 1e6), length(hx))
-    npercall <- ceiling(length(hx)/ncall)
-
-    for (i in 1:ncall) {
-        # Which inds to get \rho for this time:
-        hinds <- (1 + (i-1)*npercall):min(i*npercall, length(hx))
-
-        allxs <- outer(latticex, hx[hinds], `+`)
-        allys <- outer(latticey, hy[hinds], `+`)
-
-        allrhos <- interp.im(rho2, as.vector(allxs), as.vector(allys))
-
-        dim(allrhos) <- dim(allxs)
-
-        # foreach xs
-        for (j in 1:length(hinds)) {
-            increment <- sum(latticez*dx*dy*allrhos[,j], na.rm=TRUE)
-            val[hinds[j]] <- val[hinds[j]] + increment
-        }
-    }
-
-    return(val)
-}
-
 expectedPairs_iso <- function(rho, r, tol=.001, maxeval=1e6, maxsamp=5e3) {
     expectedCrossPairs_iso(rho, NULL, r, tol, maxeval, maxsamp)
 }
@@ -230,7 +173,7 @@ expectedCrossPairs_iso <- function(rho1, rho2=NULL, r,
     W <- as.owin(rho1)
     if (cross) {
         W2 <- as.owin(rho2)
-        stopifnot(W$xrange == W2$xrange && W$yrange== W2$yrange)
+        stopifnot(all(W$xrange == W2$xrange) && all(W$yrange== W2$yrange))
     }
 
     # allocate results

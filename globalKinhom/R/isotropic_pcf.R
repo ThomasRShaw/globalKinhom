@@ -108,7 +108,7 @@ pcfcross.global <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     verifyclass(Y, "ppp")
     W <- as.owin(X)
     W2 <- as.owin(Y)
-    stopifnot(W$xrange == W2$xrange && W$yrange == W2$yrange)
+    stopifnot(all(W$xrange == W2$xrange) && all(W$yrange == W2$yrange))
     areaW <- area(W)
     npts <- npoints(X)
 

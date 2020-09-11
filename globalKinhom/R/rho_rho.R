@@ -44,8 +44,8 @@ rhorho <- function(ux, uy, hx, hy, X, sigma, cutoff=8*sigma, sorted=c(),leaveone
             yh = as.double(hy),
             rmaxi = as.double(cutoff),
             sig= as.double(sigma),
-            result = as.double(double(length(ux)*length(hx))),
-            package = "globalKinhom")
+            result = as.double(double(length(ux)*length(hx))))
+            #package = "globalKinhom")
 
         res <- zz$result
         dim(res) <- c(length(hx), length(ux))

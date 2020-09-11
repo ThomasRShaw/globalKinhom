@@ -6,12 +6,14 @@ The modified code is distributed under the same licence:
 Copyright (C) Thomas Shaw
 Licence: GNU Public Licence >= 2 */
 
+#include <R.h>
+#include <Rinternals.h>
 #include <Rmath.h>
 #include <R_ext/Utils.h>
+#include <R_ext/Rdynload.h>
 
 #define TWOPI 6.2831853071795
-
-void rho_rho_excess(nquery, xq, yq, ndata, xd, yd, nsep, xh, yh, rmaxi, sig, result) 
+void *rho_rho_excess(nquery, xq, yq, ndata, xd, yd, nsep, xh, yh, rmaxi, sig, result) 
   /* inputs */
   int *nquery;            /* number of locations to be interrogated */
   double *xq, *yq;    /* (x,y) coordinates to be interrogated */
@@ -98,3 +100,23 @@ void rho_rho_excess(nquery, xq, yq, ndata, xd, yd, nsep, xh, yh, rmaxi, sig, res
     } /* end h loop */
   }
 }
+
+static R_NativePrimitiveArgType rre_fn_t[] = {
+    INTSXP, REALSXP, REALSXP,
+    INTSXP, REALSXP, REALSXP,
+    INTSXP, REALSXP, REALSXP,
+    REALSXP, REALSXP,
+    REALSXP
+};
+    
+static const R_CMethodDef cMethods[] = {
+    {"rho_rho_excess", (DL_FUNC) &rho_rho_excess, 12, rre_fn_t},
+    {NULL, NULL, 0, NULL}
+};
+
+void R_init_globalKinhom(DllInfo *info) {
+    R_registerRoutines(info, cMethods, NULL, NULL, NULL);
+    R_useDynamicSymbols(info, FALSE);
+    R_forceSymbols(info, TRUE);
+}
+
