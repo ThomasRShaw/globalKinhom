@@ -102,8 +102,8 @@ Thomas Shaw <shawtr@umich.edu>
 \code{\link{expectedPairs}}
 }
 \examples{
-rho <- funxy(function(x,y) 100*(1+x), owin())
+rho <- funxy(function(x,y) 80*(1+x), owin())
 X <- rpoispp(rho)
 K <- Kglobal(X)
-plot(K)
+#plot(K)
 }
