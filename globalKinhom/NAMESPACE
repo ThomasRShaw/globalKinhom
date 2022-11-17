@@ -5,7 +5,7 @@ importFrom(stats, approx, density, pnorm, runif, sd, var, rnorm)
 importFrom(utils, head, tail)
 importFrom(grDevices, xy.coords)
 
-importFrom(spatstat.core, bind.fv, bw.CvL, densityfun, fv, bind.ratfv,
+importFrom(spatstat.explore, bind.fv, bw.CvL, densityfun, fv, bind.ratfv,
             ratfv, conform.ratfv, 'fvnames<-', cutoff2Dkernel, 'formula<-',
             rmax.rule, sewpcf, match.kernel)
 importFrom(spatstat.geom, Window, area, as.im, as.owin, closepairs, crosspairs,

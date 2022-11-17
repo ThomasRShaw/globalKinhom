@@ -13,19 +13,23 @@ Licence: GNU Public Licence >= 2 */
 #include <R_ext/Rdynload.h>
 
 #define TWOPI 6.2831853071795
-void rho_rho_excess(nquery, xq, yq, ndata, xd, yd, nsep, xh, yh, rmaxi, sig, result) 
-  /* inputs */
-  int *nquery;            /* number of locations to be interrogated */
-  double *xq, *yq;    /* (x,y) coordinates to be interrogated */
-  int *ndata;            /* number of data points */
-  double *xd, *yd;    /* (x,y) coordinates of data */
-  int *nsep;
-  double *xh, *yh;  /* (x,y) coordinates of h (one for now) */
-  double *rmaxi;    /* maximum distance at which points contribute */
-  double *sig;      /* Gaussian sd */
-  /* output */
-  double *result;   /* vector of computed density values */
-{
+
+void rho_rho_excess(int *nquery, double *xq, double *yq, int *ndata,
+        double *xd, double *yd, int *nsep, double *xh, double *yh,
+        double *rmaxi, double *sig, double *result) {
+/*
+ * inputs:
+ * int *nquery;        number of locations to be interrogated
+ * double *xq, *yq;    (x,y) coordinates to be interrogated
+ * int *ndata;         number of data points
+ * double *xd, *yd;    (x,y) coordinates of data
+ * int *nsep;
+ * double *xh, *yh;  (x,y) coordinates of h (one for now)
+ * double *rmaxi;    maximum distance at which points contribute 
+ * double *sig;      Gaussian sd
+ * output
+ * double *result;   vector of computed density values
+*/
   double coef, resulti; 
   double sigma, twosig2; 
   int i, j, jleft, h, hleft;
