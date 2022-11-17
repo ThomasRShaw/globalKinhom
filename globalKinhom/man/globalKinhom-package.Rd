@@ -21,11 +21,13 @@ summarize the second order interactions of second-order intensity-reweighted
 stationary (SOIRS) point processes. These estimators provide an alternative to
 those proposed by Baddeley et al (2000) for SOIRS point processes, which we
 refer to as \dQuote{local} estimators. The local estimators are implemented in
-the spatstat package as \code{\link{pcfinhom}} and \code{\link{Kinhom}}, with
-\code{\link{pcfcross.inhom}} and \code{\link{Kcross.inhom}} for the
-corresponding cross-pcf and cross-\eqn{K}-function.
+the \code{\link{spatstat.core}} package as \code{\link{pcfinhom}} and
+\code{\link{Kinhom}}, with \code{\link{pcfcross.inhom}} and
+\code{\link{Kcross.inhom}} for the corresponding cross-pcf and
+cross-\eqn{K}-function.
 
-Where possible, the interfaces are made to match those used by the \link{spatstat} package.
+Where possible, the interfaces are made to match those used by the
+\link{spatstat.core} package.
 }
 \author{
 \packageAuthor{globalKinhom}
@@ -40,5 +42,5 @@ Maintainer: \packageMaintainer{globalKinhom}
     Interaction in Inhomogeneous Point Patterns}. Statistica Neerlandica 54, 329-350.
 }
 \keyword{ package }
-\seealso{ \link{spatstat}, \code{\link{Kglobal}}, \code{link{pcfglobal}}
+\seealso{ \code{\link{spatstat.core}}, \code{\link{Kglobal}}, \code{link{pcfglobal}}
 }

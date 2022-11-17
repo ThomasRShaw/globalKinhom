@@ -1,9 +1,19 @@
 useDynLib(globalKinhom)
-import(spatstat)
+#import(spatstat,spatstat.geom,spatstat.core)
 
 importFrom(stats, approx, density, pnorm, runif, sd, var, rnorm)
 importFrom(utils, head, tail)
 importFrom(grDevices, xy.coords)
+
+importFrom(spatstat.core, bind.fv, bw.CvL, densityfun, fv, bind.ratfv,
+            ratfv, conform.ratfv, 'fvnames<-', cutoff2Dkernel, 'formula<-',
+            rmax.rule, sewpcf, match.kernel)
+importFrom(spatstat.geom, Window, area, as.im, as.owin, closepairs, crosspairs,
+            coords, 'coords<-', diameter, funxy, handle.r.b.args, inside.owin,
+            shift, unitname, 'unitname<-', verifyclass, interp.im, is.im,
+            is.rectangle, npoints, overlap.owin)
+            
+importFrom(spatstat.random, runifpoint)
 
 export(pcfglobal, pcfcross.global, Kglobal, Kcross.global)
 export(expectedPairs, expectedCrossPairs, expectedPairs_iso, expectedCrossPairs_iso)

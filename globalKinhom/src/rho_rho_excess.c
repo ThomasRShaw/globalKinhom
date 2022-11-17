@@ -52,7 +52,7 @@ void rho_rho_excess(nquery, xq, yq, ndata, xd, yd, nsep, xh, yh, rmaxi, sig, res
   /* jleft[i] <= jleft[i+1], likewise kleft, so only initialize once */
   /* i indexes the query points xq,yq */
   jleft=0;
-  hleft = nh;
+  hleft = nh-1;
 
   for (i = 0; i < nq; i++) {
     xqi = xq[i];
