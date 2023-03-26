@@ -32,7 +32,7 @@ rhorho <- function(ux, uy, hx, hy, X, sigma, cutoff=8*sigma, sorted=c(),leaveone
     wp[inside] <- diggle_weights(up[inside], vp[inside], sigma)
 
     if (leaveoneout) {
-        zz <- .C("rho_rho_excess",
+        zz <- .C(C_rho_rho_excess,
             nquery = as.integer(length(ux)),
             xq = as.double(xq),
             yq = as.double(yq),

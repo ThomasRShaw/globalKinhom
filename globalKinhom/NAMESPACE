@@ -1,4 +1,4 @@
-useDynLib(globalKinhom)
+useDynLib(globalKinhom, .registration = TRUE, .fixes = "C_")
 #import(spatstat,spatstat.geom,spatstat.core)
 
 importFrom(stats, approx, density, pnorm, runif, sd, var, rnorm)
