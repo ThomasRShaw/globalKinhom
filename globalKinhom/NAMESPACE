@@ -7,13 +7,14 @@ importFrom(grDevices, xy.coords)
 
 importFrom(spatstat.explore, bind.fv, bw.CvL, densityfun, fv, bind.ratfv,
             ratfv, conform.ratfv, 'fvnames<-', cutoff2Dkernel, 'formula<-',
-            rmax.rule, sewpcf, match.kernel)
+            rmax.rule, sewpcf)
 importFrom(spatstat.geom, Window, area, as.im, as.owin, closepairs, crosspairs,
             coords, 'coords<-', diameter, funxy, handle.r.b.args, inside.owin,
             shift, unitname, 'unitname<-', verifyclass, interp.im, is.im,
             is.rectangle, npoints, overlap.owin)
             
 importFrom(spatstat.random, runifpoint)
+importFrom(spatstat.univar, match.kernel)
 
 export(pcfglobal, pcfcross.global, Kglobal, Kcross.global)
 export(expectedPairs, expectedCrossPairs, expectedPairs_iso, expectedCrossPairs_iso)
