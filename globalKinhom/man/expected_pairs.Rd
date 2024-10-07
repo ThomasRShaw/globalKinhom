@@ -43,12 +43,13 @@ expectedPairs_iso_kernloo(X, r, sigma=bw.CvL, tol=.001, maxeval=1e6,
 \arguments{
   \item{rho1, rho2, rho}{
     Intensity functions, either of class \code{im} or \code{funxy}.  This may
-    be produced by \code{\link{density.ppp}} or \code{\link{densityfun.ppp}},
-    or provided by a fitted intensity model.
+    be produced by \code{\link[spatstat.explore]{density.ppp}} or
+    \code{\link[spatstat.explore]{densityfun.ppp}}, or provided by a fitted
+    intensity model.
   }
   \item{X}{
-    Point pattern of class \code{\link{ppp}} with the points of the pattern for which
-    \eqn{\bar \gamma}{gammabar} is to be estimated.
+    Point pattern of class \code{\link[spatstat.geom]{ppp}} with the points of
+    the pattern for which \eqn{\bar \gamma}{gammabar} is to be estimated.
   }
   \item{hx, hy}{
     For expectedPairs and expectedCrossPairs (i.e. \eqn{\gamma(h)}{gamma(h)}),

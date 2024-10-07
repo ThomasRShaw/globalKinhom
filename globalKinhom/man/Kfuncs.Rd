@@ -20,12 +20,13 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 }
 \arguments{
   \item{X, Y}{
-    point process of type \code{\link{ppp}}, on which to evaluate the (cross) \eqn{K}-function
+    point process of type \code{\link[spatstat.geom]{ppp}}, on which to evaluate the (cross) \eqn{K}-function
 }
   \item{lambda, lambdaX, lambdaY}{
     intensity function estimates corresponding to \code{X} and \code{Y}. If omitted, intensity
-    functions will be computed using \code{\link{density.ppp}} or \code{\link{densityfun.ppp}}
-    (see discrete.lambda below)
+    functions will be computed using
+    \code{\link[spatstat.explore]{density.ppp}} or
+    \code{\link[spatstat.explore]{densityfun.ppp}} (see discrete.lambda below)
 }
   \item{\dots}{
     extra args passed to density.ppp or densityfun.ppp, if applicable.
@@ -36,8 +37,8 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 }
   \item{r}{
     Values of \eqn{r} to evaluate \eqn{K(r)} at. If omitted, a sensible default
-    is chosen, using the same conventions as \code{\link{Kest}} and
-    \code{\link{Kinhom}}.
+    is chosen, using the same conventions as \code{\link[spatstat.explore]{Kest}} and
+    \code{\link[spatstat.explore]{Kinhom}}.
 }
   \item{rmax}{
     Maximum \eqn{r} to evaluate \eqn{K(r)} at. \code{rmax} is used to generate values for \code{r},
@@ -53,8 +54,10 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 }
   \item{discrete.lambda}{
     If \code{TRUE}, and intensity function(s) are not supplied, estimate intensities by
-    interpolating the values on a discrete lattice (using \code{\link{interp.im}} and
-    \code{\link{density.ppp}}), instead of exactly (using \code{\link{densityfun.ppp}}).
+    interpolating the values on a discrete lattice (using
+    \code{\link[spatstat.geom]{interp.im}} and
+    \code{\link[spatstat.explore]{density.ppp}}), instead of exactly (using
+    \code{\link[spatstat.explore]{densityfun.ppp}}).
 }
   \item{interpolate}{
     If \code{TRUE}, evaluate the expectedCrossPairs on a lattice and interpolate,
@@ -86,8 +89,10 @@ Kcross.global(X, Y, lambdaX=NULL, lambdaY=NULL, ..., sigma=bw.CvL(X), r=NULL,
 }
 }
 \value{
-    The return value is an object of class \code{\link{fv}}, just as for \code{\link{Kest}}
-    and \code{\link{Kinhom}}. The object contains columns \code{r}, \code{theo}, and
+    The return value is an object of class \code{\link[spatstat.explore]{fv}},
+    just as for \code{\link[spatstat.explore]{Kest}} and
+    \code{\link[spatstat.explore]{Kinhom}}. The
+    object contains columns \code{r}, \code{theo}, and
     \code{global}, corresponding respectively to the argument \eqn{r}, the theoretical
     values of \eqn{K(r)} for a Poisson process, and \eqn{K_\mathrm{global}(r)}{K[global](r)}.
 }
