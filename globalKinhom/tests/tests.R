@@ -1,4 +1,4 @@
-require(globalKinhom)
+suppressMessages(require(globalKinhom))
 
 set.seed(49)
 

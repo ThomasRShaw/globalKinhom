@@ -12,6 +12,8 @@ function(X, lambda=NULL, ..., sigma=bw.CvL(X), r=NULL, rmax=NULL,
     areaW <- area(W)
     npts <- npoints(X)
 
+    divisor = match.arg(divisor)
+
     rmaxdefault <- if (is.null(rmax)) rmax <- rmax.rule("K", W, npts/areaW)
     breaks <- handle.r.b.args(r, NULL, W, rmaxdefault=rmax)
     r <- breaks$r
@@ -111,6 +113,8 @@ pcfcross.global <- function(X,Y, lambdaX=NULL, lambdaY=NULL, ...,
     stopifnot(all(W$xrange == W2$xrange) && all(W$yrange == W2$yrange))
     areaW <- area(W)
     npts <- npoints(X)
+
+    divisor = match.arg(divisor)
 
     rmaxdefault <- if (is.null(rmax)) rmax <- rmax.rule("K", W, npts/areaW)
     breaks <- handle.r.b.args(r, NULL, W, rmaxdefault=rmax)
